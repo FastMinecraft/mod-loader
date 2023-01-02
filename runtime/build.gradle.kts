@@ -29,5 +29,9 @@ tasks {
                 }
             }
         })
+
+        exclude("dev/fastmc/loader/Constants.class")
+
+        archiveBaseName.set("mod-loader-runtime")
     }
 }
