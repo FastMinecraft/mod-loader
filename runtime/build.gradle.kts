@@ -35,3 +35,12 @@ tasks {
         archiveBaseName.set("mod-loader-runtime")
     }
 }
+
+publishing {
+    publications {
+        create<MavenPublication>("runtime") {
+            artifactId = "mod-loader-runtime"
+            artifact(tasks.jar)
+        }
+    }
+}

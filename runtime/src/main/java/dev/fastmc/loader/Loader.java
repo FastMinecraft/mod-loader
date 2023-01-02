@@ -18,8 +18,7 @@ import java.util.zip.ZipOutputStream;
 
 public class Loader {
     public static File LOADER_DIR = new File("fastmc-loader");
-    
-    private static final Logger logger = LogManager.getLogger();
+    public static final Logger LOGGER = LogManager.getLogger();
 
     public static String getFileName(String modName, String platform) {
         return modName + "-" + platform;
@@ -30,8 +29,6 @@ public class Loader {
         for (String line : Constants.MIXIN_CONFIGS.split(",")) {
             if (line.startsWith(platform + ":")) {
                 mixins.add(line.substring(platform.length() + 1));
-            } else if (line.startsWith("common:")) {
-                mixins.add(line.substring(7));
             }
         }
         return mixins.toArray(new String[0]);
@@ -65,10 +62,10 @@ public class Loader {
             throw new RuntimeException(e);
         }
 
-        logger.info("Checksum: " + checksum);
+        LOGGER.info("Checksum: " + checksum);
 
         if (checksum.equals(cachedCheckSum)) {
-            logger.info("Using cached " + fileName + ".jar");
+            LOGGER.info("Using cached " + fileName + ".jar");
             return jarFile;
         }
 

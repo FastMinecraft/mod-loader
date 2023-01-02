@@ -54,21 +54,20 @@ public class ForgeLoader implements ITransformationService {
     }
 
     private static class Transformer implements ITransformer<ClassNode> {
-        @SuppressWarnings("unchecked")
+        @SuppressWarnings({ "unchecked", "deprecation" })
         @Nonnull
         @Override
         public ClassNode transform(ClassNode input, ITransformerVotingContext context) {
+            Loader.LOGGER.info("Adding access transformer");
             addAt();
 
             try {
-                TransformingClassLoader classLoader = (TransformingClassLoader) Thread.currentThread().getContextClassLoader();
-
-                Field delegatedClassLoaderField = TransformingClassLoader.class.getDeclaredField("delegatedClassLoader");
-                delegatedClassLoaderField.setAccessible(true);
-
+                Loader.LOGGER.info("Appending class loader");
                 CLASS_LOADER = new URLClassLoader(new URL[]{ UNPACKED.toURI().toURL() });
 
+                TransformingClassLoader classLoader = (TransformingClassLoader) Thread.currentThread().getContextClassLoader();
                 Field resourceFinderField = TransformingClassLoader.class.getDeclaredField("resourceFinder");
+                boolean accessible = resourceFinderField.isAccessible();
                 resourceFinderField.setAccessible(true);
                 Function<String, Enumeration<URL>> resourceFinder =
                     (Function<String, Enumeration<URL>>) resourceFinderField.get(classLoader);
@@ -79,10 +78,12 @@ public class ForgeLoader implements ITransformationService {
                         (path -> LamdbaExceptionUtils.uncheck(() -> CLASS_LOADER.findResources(path)))
                     )
                 );
+                resourceFinderField.setAccessible(accessible);
 
                 Class<?> mixins = Class.forName("org.spongepowered.asm.mixin.Mixins");
                 Method addConfiguration = mixins.getDeclaredMethod("addConfigurations", String[].class);
                 String[] mixinConfigs = Loader.getMixinConfigs(PLATFORM);
+                Loader.LOGGER.info("Loading mixin configs: " + Arrays.toString(mixinConfigs));
                 addConfiguration.invoke(null, (Object) mixinConfigs);
             } catch (Exception e) {
                 throw new RuntimeException(e);

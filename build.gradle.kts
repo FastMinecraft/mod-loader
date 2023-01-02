@@ -1,5 +1,12 @@
 plugins {
     id("java")
+    id("dev.fastmc.maven-repo").version("1.0.0").apply(false)
+}
+
+subprojects {
+    apply {
+        plugin("dev.fastmc.maven-repo")
+    }
 }
 
 allprojects {
