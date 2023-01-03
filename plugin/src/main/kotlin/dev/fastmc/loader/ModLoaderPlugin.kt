@@ -19,8 +19,10 @@ class ModLoaderPlugin : Plugin<Project> {
             generateConstants.platforms.set(platforms)
         }
 
-        project.tasks.named("compileJava", JavaCompile::class.java).configure { javaCompile ->
-            javaCompile.source(generateConstants.sourcesDir)
+        val compileConstants = project.tasks.create("compileConstants", JavaCompile::class.java) { compileConstants ->
+            compileConstants.destinationDirectory.set(project.layout.buildDirectory.dir("classes/mod-loader"))
+            compileConstants.classpath = project.files()
+            compileConstants.source(generateConstants.sourcesDir)
         }
 
         val modPackaging = project.tasks.create("modPackaging", ModPackagingTask::class.java) { modPackaging ->
@@ -33,11 +35,18 @@ class ModLoaderPlugin : Plugin<Project> {
             remapRuntime.runtimeConfiguration.set(runtimeConfiguration)
         }
 
-        project.tasks.named("jar", Jar::class.java).configure { jar ->
-            jar.dependsOn(generateConstants)
-            jar.from(remapRuntimeTask.outputs)
-            jar.from(generateConstants.resourcesDir)
-            jar.from(modPackaging.outputs)
+        val modLoaderJar = project.tasks.create("modLoaderJar", Jar::class.java) { modLoaderJar ->
+            modLoaderJar.dependsOn(generateConstants)
+            modLoaderJar.from(compileConstants.outputs)
+            modLoaderJar.from(remapRuntimeTask.outputs)
+            modLoaderJar.from(generateConstants.resourcesDir)
+            modLoaderJar.from(modPackaging.outputs)
+
+            modLoaderJar.manifest.attributes(mapOf("FMLCorePlugin" to extension.modPackage.map { "$it.LegacyForgeLoader" }))
+        }
+
+        project.artifacts {
+            it.add("archives", modLoaderJar)
         }
     }
 
