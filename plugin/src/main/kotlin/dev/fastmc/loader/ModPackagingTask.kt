@@ -13,6 +13,7 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import org.tukaani.xz.LZMA2Options
@@ -26,6 +27,7 @@ abstract class ModPackagingTask : DefaultTask() {
     @get:Input
     internal abstract val modName: Property<String>
 
+    @get:Optional
     @get:Input
     internal abstract val defaultPlatform: Property<ModPlatform>
 
