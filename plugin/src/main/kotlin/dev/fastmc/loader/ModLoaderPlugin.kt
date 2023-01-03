@@ -56,9 +56,12 @@ class ModLoaderPlugin : Plugin<Project> {
             modLoaderJar.dependsOn(generateConstants)
             modLoaderJar.from(compileConstants.outputs)
             modLoaderJar.from(remapRuntimeTask.outputs)
-            modLoaderJar.from(generateConstants.resourcesDir)
+            modLoaderJar.from(generateConstants.resourcesDir) {
+                it.exclude("MANIFEST.MF")
+            }
             modLoaderJar.from(modPackaging.outputs)
 
+            modLoaderJar.manifest.from(generateConstants.manifestFile)
             modLoaderJar.manifest.attributes(mapOf("FMLCorePlugin" to extension.modPackage.map { "$it.LegacyForgeLoader" }))
         }
 

@@ -5,12 +5,15 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileCollection
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import java.io.File
+import java.util.jar.Attributes
 import java.util.jar.Manifest
 import javax.inject.Inject
 
@@ -37,9 +40,13 @@ abstract class GenerateConstantsTask : DefaultTask() {
     @get:OutputDirectory
     internal abstract val resourcesDir: DirectoryProperty
 
+    @get:OutputFile
+    internal abstract val manifestFile: RegularFileProperty
+
     init {
         sourcesDir.set(project.layout.buildDirectory.dir("mod-loader/sources"))
         resourcesDir.set(project.layout.buildDirectory.dir("mod-loader/resources"))
+        manifestFile.set(resourcesDir.file("META-INF/MANIFEST.MF"))
     }
 
     private val constantsSrc = """
@@ -53,7 +60,20 @@ abstract class GenerateConstantsTask : DefaultTask() {
 
     @TaskAction
     fun run() {
+        val sourceDir = sourcesDir.get().asFile
+        sourceDir.deleteRecursively()
+        sourceDir.mkdirs()
+
+        val resourceDir = resourcesDir.get().asFile
+        resourceDir.deleteRecursively()
+        resourceDir.mkdirs()
+
         val mixinConfigs = mutableListOf<String>()
+
+        val manifestFile = manifestFile.get().asFile
+            manifestFile.parentFile.mkdirs()
+            manifestFile.createNewFile()
+
         generateResources(mixinConfigs)
         generateClasses(mixinConfigs)
     }
@@ -82,7 +102,7 @@ abstract class GenerateConstantsTask : DefaultTask() {
             val file = platformJars.get().singleFile
             when (it) {
                 ModPlatform.FABRIC -> fabric(file, mixinConfigs, resourcesDir)
-                ModPlatform.FORGE -> forge(file, mixinConfigs)
+                ModPlatform.FORGE -> forge(file, mixinConfigs, resourcesDir)
             }
         } ?: run {
             platformJars.get().files.find {
@@ -94,7 +114,7 @@ abstract class GenerateConstantsTask : DefaultTask() {
             platformJars.get().files.find {
                 it.name.contains(ModPlatform.FORGE.id)
             }?.let { file ->
-                forge(file, mixinConfigs)
+                forge(file, mixinConfigs, resourcesDir)
             }
         }
     }
@@ -130,13 +150,25 @@ abstract class GenerateConstantsTask : DefaultTask() {
         }
     }
 
-    private fun forge(file: File, mixinConfigs: MutableList<String>) {
+    private fun forge(file: File, mixinConfigs: MutableList<String>, resourcesDir: File) {
         val zipTree = project.zipTree(file)
 
-        zipTree.find { it.name == "MANIFEST.MF" }?.let { manifestFile ->
-            val manifest = Manifest(manifestFile.inputStream())
-            val mixinConfigsString = manifest.mainAttributes.getValue("MixinConfigs")
-            mixinConfigsString?.split(',')?.mapTo(mixinConfigs) { "forge:$it" }
+        zipTree.find { it.name == "MANIFEST.MF" }?.let { oldManifestFile ->
+            val manifest = Manifest(oldManifestFile.inputStream())
+
+            manifest.mainAttributes.getValue("MixinConfigs")
+                ?.split(',')?.mapTo(mixinConfigs) { "forge:$it" }
+
+            manifest.mainAttributes.getValue("FMLAT")?.let { atName ->
+                val atFile = zipTree.find { it.name == atName }
+                    ?: throw IllegalStateException("Could not find access transformer file $atName")
+                atFile.copyTo(File(resourcesDir, "META-INF/$atName"), true)
+
+                val newManifest = Manifest()
+                newManifest.mainAttributes[Attributes.Name.MANIFEST_VERSION] = "1.0"
+                newManifest.mainAttributes[Attributes.Name("FMLAT")] = atName
+                manifestFile.get().asFile.outputStream().use { newManifest.write(it) }
+            }
         }
     }
 }
