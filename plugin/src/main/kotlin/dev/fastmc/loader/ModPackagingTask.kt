@@ -7,7 +7,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.gradle.api.DefaultTask
-import org.gradle.api.artifacts.Configuration
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
@@ -32,7 +31,7 @@ abstract class ModPackagingTask : DefaultTask() {
     internal abstract val defaultPlatform: Property<ModPlatform>
 
     @get:InputFiles
-    internal abstract val platformsJars: Property<FileCollection>
+    internal abstract val platformJars: Property<FileCollection>
 
     @get:OutputFile
     internal abstract val outputFile: RegularFileProperty
@@ -51,9 +50,9 @@ abstract class ModPackagingTask : DefaultTask() {
                 zipOut.setMethod(ZipOutputStream.DEFLATED)
                 zipOut.setLevel(0)
                 defaultPlatform.orNull?.let {
-                    pack(this, platformsJars.get().singleFile, it.id, zipOut)
+                    pack(this, platformJars.get().singleFile, it.id, zipOut)
                 } ?: run {
-                    platformsJars.get().forEach { file ->
+                    platformJars.get().forEach { file ->
                         val platform = ModPlatform.values().find { file.name.contains(it.id) } ?: return@forEach
                         pack(this, file, platform.id, zipOut)
                     }

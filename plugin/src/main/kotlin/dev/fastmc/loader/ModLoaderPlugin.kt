@@ -9,21 +9,23 @@ import org.gradle.jvm.tasks.Jar
 
 class ModLoaderPlugin : Plugin<Project> {
     override fun apply(project: Project) {
-        val platforms = project.configurations.create("modLoaderPlatforms")
         val runtimeConfiguration = project.configurations.create("modLoaderRuntime")
         val extension = project.extensions.create("modLoader", ModLoaderExtension::class.java)
 
-        platforms.buildDependencies
-        val platformFiles = project.provider { platforms.fileCollection() + platforms.allArtifacts.files }
+        val platforms = project.configurations.register("modLoaderPlatforms")
+        val platformJarFiles = platforms.map { project.files(it.files, it.allArtifacts.files.files) }
 
         project.dependencies.add(runtimeConfiguration.name, "dev.fastmc:mod-loader-runtime:$version")
 
         val generateConstants =
             project.tasks.create("generateConstants", GenerateConstantsTask::class.java) { generateConstants ->
+                generateConstants.dependsOn(platforms)
+                generateConstants.dependsOn(platforms.get().artifacts)
+
                 generateConstants.modName.set(extension.modName)
                 generateConstants.modPackage.set(extension.modPackage)
                 generateConstants.defaultPlatform.set(extension.defaultPlatform)
-                generateConstants.platformJars.set(platformFiles)
+                generateConstants.platformJars.set(platformJarFiles)
             }
 
         val compileConstants = project.tasks.create("compileConstants", JavaCompile::class.java) { compileConstants ->
@@ -42,9 +44,12 @@ class ModLoaderPlugin : Plugin<Project> {
         }
 
         val modPackaging = project.tasks.create("modPackaging", ModPackagingTask::class.java) { modPackaging ->
+            modPackaging.dependsOn(platforms)
+            modPackaging.dependsOn(platforms.get().artifacts)
+
             modPackaging.modName.set(extension.modName)
             modPackaging.defaultPlatform.set(extension.defaultPlatform)
-            modPackaging.platformsJars.set(platformFiles)
+            modPackaging.platformJars.set(platformJarFiles)
         }
 
         val remapRuntimeTask = project.tasks.create("remapRuntime", RemapRuntimeTask::class.java) { remapRuntime ->
