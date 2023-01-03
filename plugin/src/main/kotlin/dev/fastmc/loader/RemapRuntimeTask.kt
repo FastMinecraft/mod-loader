@@ -57,7 +57,7 @@ abstract class RemapRuntimeTask : DefaultTask() {
                 val fileTo = File(output, entry.name.replace(packageRegex, newPackage))
                 when {
                     entry.isDirectory -> {
-                        fileTo.mkdirs()
+                        // Ignored
                     }
                     entry.name.endsWith(".class") -> {
                         val bytes = zipIn.readBytes()

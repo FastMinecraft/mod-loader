@@ -8,7 +8,6 @@ import java.io.File;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.Arrays;
 import java.util.Map;
 
 public class LegacyForgeLoader implements IFMLLoadingPlugin {
@@ -20,21 +19,24 @@ public class LegacyForgeLoader implements IFMLLoadingPlugin {
             URL unpackedURL = unpacked.toURI().toURL();
 
             Loader.LOGGER.info("Appending class loader");
-            Launch.classLoader.addURL(unpackedURL);
+            LaunchClassLoader launchClassLoader = Launch.classLoader;
+            ClassLoader appClassLoader = LaunchClassLoader.class.getClassLoader();
 
             Method addURLMethod = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
             addURLMethod.setAccessible(true);
-            addURLMethod.invoke(LaunchClassLoader.class.getClassLoader(), unpackedURL);
+            addURLMethod.invoke(appClassLoader, unpackedURL);
+            addURLMethod.invoke(launchClassLoader, unpackedURL);
 
-            Class<?> mixinBootstrap = Class.forName("org.spongepowered.asm.launch.MixinBootstrap");
+            Loader.LOGGER.info("Initializing mixin bootstrap");
+            Class<?> mixinBootstrap = Class.forName("org.spongepowered.asm.launch.MixinBootstrap", true, appClassLoader);
             Method init = mixinBootstrap.getDeclaredMethod("init");
             init.invoke(null);
 
-            Class<?> mixins = Class.forName("org.spongepowered.asm.mixin.Mixins");
-            Method addConfiguration = mixins.getDeclaredMethod("addConfigurations", String[].class);
-            String[] mixinConfigs = Loader.getMixinConfigs(PLATFORM);
-            Loader.LOGGER.info("Loading mixin configs: " + Arrays.toString(mixinConfigs));
-            addConfiguration.invoke(null, (Object) mixinConfigs);
+//            Class<?> mixins = Class.forName("org.spongepowered.asm.mixin.Mixins", true, appClassLoader);
+//            Method addConfiguration = mixins.getDeclaredMethod("addConfigurations", String[].class);
+//            String[] mixinConfigs = Loader.getMixinConfigs(PLATFORM);
+//            Loader.LOGGER.info("Loading mixin configs: " + Arrays.toString(mixinConfigs));
+//            addConfiguration.invoke(null, (Object) mixinConfigs);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
