@@ -2,10 +2,8 @@
 
 package dev.fastmc.loader
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.RegularFileProperty
@@ -17,6 +15,7 @@ import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import org.tukaani.xz.LZMA2Options
 import org.tukaani.xz.XZOutputStream
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
@@ -44,26 +43,51 @@ abstract class ModPackagingTask : DefaultTask() {
     fun packageMod() {
         val outputFile = outputFile.get().asFile
         outputFile.parentFile.mkdirs()
+
+        val bytes = readToZipBytes()
+        System.gc()
+
         val rawStream = outputFile.outputStream().buffered(16 * 1024)
-        ZipOutputStream(XZOutputStream(rawStream, LZMA2Options(LZMA2Options.PRESET_MAX))).use { zipOut ->
+        XZOutputStream(rawStream, LZMA2Options()).use { it.write(bytes) }
+        System.gc()
+    }
+
+    private fun readToZipBytes(): ByteArray {
+        val byteArrayOut = ByteArrayOutputStream(4 * 1024 * 1024)
+        ZipOutputStream(byteArrayOut).use { zipOut ->
             runBlocking {
+                val channel = Channel<Pair<ZipEntry, ByteArray?>>(Channel.BUFFERED)
                 zipOut.setMethod(ZipOutputStream.DEFLATED)
                 zipOut.setLevel(0)
-                defaultPlatform.orNull?.let {
-                    pack(this, platformJars.get().singleFile, it.id, zipOut)
-                } ?: run {
-                    platformJars.get().forEach { file ->
-                        val platform = ModPlatform.values().find { file.name.contains(it.id) } ?: return@forEach
-                        pack(this, file, platform.id, zipOut)
+
+                launch(Dispatchers.IO) {
+                    for (entry in channel) {
+                        zipOut.putNextEntry(entry.first)
+                        entry.second?.let { zipOut.write(it) }
+                        zipOut.closeEntry()
                     }
                 }
+
+                coroutineScope {
+                    defaultPlatform.orNull?.let {
+                        pack(platformJars.get().singleFile, it.id, zipOut)
+                    } ?: run {
+                        platformJars.get().forEach { file ->
+                            val platform = ModPlatform.values().find { file.name.contains(it.id) } ?: return@forEach
+                            pack(file, platform.id, zipOut)
+                        }
+                    }
+                }
+
+                channel.close()
             }
         }
+       return byteArrayOut.toByteArray()
     }
 
     @Suppress("BlockingMethodInNonBlockingContext")
-    private fun pack(scope: CoroutineScope, input: File, name: String, zipOut: ZipOutputStream) {
-        scope.launch(Dispatchers.IO) {
+    private fun CoroutineScope.pack(input: File, name: String, zipOut: ZipOutputStream) {
+        launch(Dispatchers.IO) {
             ZipInputStream(input.inputStream().buffered(16 * 1024)).use {
                 while (true) {
                     val entryIn = it.nextEntry ?: break
@@ -71,13 +95,13 @@ abstract class ModPackagingTask : DefaultTask() {
                     if (!entryIn.isDirectory) {
                         val bytes = it.readBytes()
 
-                        scope.launch {
+                        this@pack.launch {
                             entryOut.size = bytes.size.toLong()
                             zipOut.putNextEntry(entryOut)
                             zipOut.write(bytes)
                         }
                     } else {
-                        scope.launch {
+                        this@pack.launch {
                             zipOut.putNextEntry(entryOut)
                         }
                     }
