@@ -2,12 +2,14 @@ package dev.fastmc.loader
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
-import org.gradle.api.artifacts.Configuration
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
+import org.gradle.internal.enterprise.test.FileProperty
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.commons.ClassRemapper
@@ -22,8 +24,8 @@ abstract class RemapRuntimeTask : DefaultTask() {
     @get:Input
     internal abstract val modPackage : Property<String>
 
-    @get:Input
-    internal abstract val runtimeConfiguration: Property<Configuration>
+    @get:InputFile
+    internal abstract val runtimeJar: Property<File>
 
     @get:OutputDirectory
     internal abstract val outputDirectory: DirectoryProperty
@@ -49,7 +51,7 @@ abstract class RemapRuntimeTask : DefaultTask() {
             }
         }
 
-        ZipInputStream(runtimeConfiguration.get().singleFile.inputStream().buffered(16 * 1024)).use { zipIn ->
+        ZipInputStream(runtimeJar.get().inputStream().buffered(16 * 1024)).use { zipIn ->
             while (true) {
                 val entry = zipIn.nextEntry ?: break
                 val fileTo = File(output, entry.name.replace(packageRegex, newPackage))

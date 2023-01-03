@@ -8,9 +8,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.gradle.api.DefaultTask
 import org.gradle.api.artifacts.Configuration
+import org.gradle.api.file.FileCollection
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import org.tukaani.xz.LZMA2Options
@@ -25,13 +27,15 @@ abstract class ModPackagingTask : DefaultTask() {
     internal abstract val modName: Property<String>
 
     @get:Input
-    internal abstract val platforms: Property<Configuration>
+    internal abstract val defaultPlatform: Property<ModPlatform>
+
+    @get:InputFiles
+    internal abstract val platformsJars: Property<FileCollection>
 
     @get:OutputFile
     internal abstract val outputFile: RegularFileProperty
 
     init {
-        dependsOn(platforms)
         outputFile.set(modName.map { project.layout.buildDirectory.file("mod-loader/packed/${it}.xz").get() })
     }
 
@@ -44,9 +48,13 @@ abstract class ModPackagingTask : DefaultTask() {
             runBlocking {
                 zipOut.setMethod(ZipOutputStream.DEFLATED)
                 zipOut.setLevel(0)
-                platforms.get().files.forEach { file ->
-                    val platform = ModPlatform.values().find { file.name.contains(it.id) } ?: return@forEach
-                    pack(this, file, platform.id, zipOut)
+                defaultPlatform.orNull?.let {
+                    pack(this, platformsJars.get().singleFile, it.id, zipOut)
+                } ?: run {
+                    platformsJars.get().forEach { file ->
+                        val platform = ModPlatform.values().find { file.name.contains(it.id) } ?: return@forEach
+                        pack(this, file, platform.id, zipOut)
+                    }
                 }
             }
         }

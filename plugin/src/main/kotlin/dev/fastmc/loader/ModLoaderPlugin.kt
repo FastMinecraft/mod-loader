@@ -11,12 +11,16 @@ class ModLoaderPlugin : Plugin<Project> {
         val runtimeConfiguration = project.configurations.create("modLoaderRuntime")
         val extension = project.extensions.create("modLoader", ModLoaderExtension::class.java)
 
+        platforms.buildDependencies
+        val platformFiles = project.provider { platforms.fileCollection() + platforms.allArtifacts.files }
+
         project.dependencies.add(runtimeConfiguration.name, "dev.fastmc:mod-loader-runtime:$version")
 
         val generateConstants = project.tasks.create("generateConstants", GenerateConstantsTask::class.java) { generateConstants ->
             generateConstants.modName.set(extension.modName)
             generateConstants.modPackage.set(extension.modPackage)
-            generateConstants.platforms.set(platforms)
+            generateConstants.defaultPlatform.set(extension.defaultPlatform)
+            generateConstants.platformJars.set(platformFiles)
         }
 
         val compileConstants = project.tasks.create("compileConstants", JavaCompile::class.java) { compileConstants ->
@@ -27,12 +31,13 @@ class ModLoaderPlugin : Plugin<Project> {
 
         val modPackaging = project.tasks.create("modPackaging", ModPackagingTask::class.java) { modPackaging ->
             modPackaging.modName.set(extension.modName)
-            modPackaging.platforms.set(platforms)
+            modPackaging.defaultPlatform.set(extension.defaultPlatform)
+            modPackaging.platformsJars.set(platformFiles)
         }
 
         val remapRuntimeTask = project.tasks.create("remapRuntime", RemapRuntimeTask::class.java) { remapRuntime ->
             remapRuntime.modPackage.set(extension.modPackage)
-            remapRuntime.runtimeConfiguration.set(runtimeConfiguration)
+            remapRuntime.runtimeJar.set(project.provider { runtimeConfiguration.singleFile })
         }
 
         val modLoaderJar = project.tasks.create("modLoaderJar", Jar::class.java) { modLoaderJar ->

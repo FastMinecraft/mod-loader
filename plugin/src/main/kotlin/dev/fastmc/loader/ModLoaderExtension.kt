@@ -9,6 +9,7 @@ import javax.inject.Inject
 abstract class ModLoaderExtension {
     abstract val modName: Property<String>
     abstract val modPackage: Property<String>
+    abstract val defaultPlatform: Property<ModPlatform>
 
     @get:Inject
     internal abstract val project: Project
