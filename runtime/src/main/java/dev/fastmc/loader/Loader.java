@@ -116,7 +116,7 @@ public class Loader {
         return new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(file.toPath())));
     }
 
-    private static byte[] readBytes(InputStream stream) throws IOException {
+    public static byte[] readBytes(InputStream stream) throws IOException {
         byte[] buffer = new byte[Math.max(stream.available(), 1024 * 1024)];
         int read = 0;
         for (int len; (len = stream.read(buffer, read, buffer.length - read)) > 0; ) {
