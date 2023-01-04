@@ -53,7 +53,7 @@ public class Loader {
         byte[] bytes;
         String checksum;
         try (InputStream is = Objects.requireNonNull(
-            Loader.class.getClassLoader().getResourceAsStream(modName + ".xz")
+            Loader.class.getClassLoader().getResourceAsStream(modName + ".zip.xz")
         )) {
             bytes = readBytes(is);
             MessageDigest md = MessageDigest.getInstance("SHA-512");

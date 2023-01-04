@@ -36,7 +36,7 @@ abstract class ModPackagingTask : DefaultTask() {
     internal abstract val outputFile: RegularFileProperty
 
     init {
-        outputFile.set(modName.map { project.layout.buildDirectory.file("mod-loader/packed/${it}.xz").get() })
+        outputFile.set(modName.map { project.layout.buildDirectory.file("mod-loader/packed/${it}.zip.xz").get() })
     }
 
     @TaskAction
@@ -48,7 +48,10 @@ abstract class ModPackagingTask : DefaultTask() {
         System.gc()
 
         val rawStream = outputFile.outputStream().buffered(16 * 1024)
-        XZOutputStream(rawStream, LZMA2Options()).use { it.write(bytes) }
+        val lzma2Options = LZMA2Options(LZMA2Options.PRESET_MAX)
+        lzma2Options.dictSize = 16 * 1024 * 1024
+        lzma2Options.niceLen = 273
+        XZOutputStream(rawStream, lzma2Options).use { it.write(bytes) }
         System.gc()
     }
 
