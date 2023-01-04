@@ -40,6 +40,7 @@ abstract class RemapRuntimeTask : DefaultTask() {
     @TaskAction
     fun remap() {
         val output = outputDirectory.get().asFile
+        output.deleteRecursively()
         output.mkdirs()
 
         val packageRegex = "dev.fastmc.loader".toRegex()
