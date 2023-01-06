@@ -1,3 +1,7 @@
+plugins {
+    id("dev.luna5ama.jar-optimizer").version("1.2-SNAPSHOT")
+}
+
 repositories {
     maven("https://maven.fabricmc.net/")
     maven("https://maven.minecraftforge.net/")
@@ -64,11 +68,19 @@ tasks {
     }
 }
 
+val optimizeJar = jarOptimizer.register(tasks.jar, "dev.fastmc.loader")
+
+artifacts {
+    archives(optimizeJar)
+}
+
 publishing {
     publications {
         create<MavenPublication>("runtime") {
             artifactId = "mod-loader-runtime"
-            artifact(tasks.jar)
+            artifact(optimizeJar) {
+                classifier = ""
+            }
         }
     }
 }
