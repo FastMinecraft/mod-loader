@@ -17,7 +17,6 @@ import org.tukaani.xz.LZMA2Options
 import org.tukaani.xz.XZOutputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
-import java.util.zip.ZipInputStream
 
 abstract class ModPackagingTask : DefaultTask() {
     @get:Input
@@ -82,10 +81,14 @@ abstract class ModPackagingTask : DefaultTask() {
                 channel.close()
             }
         }
-       return byteArrayOut.toByteArray()
+        return byteArrayOut.toByteArray()
     }
 
-    private fun CoroutineScope.pack(input: File, name: String, channel: SendChannel<Pair<TarArchiveEntry, ByteArray?>>) {
+    private fun CoroutineScope.pack(
+        input: File,
+        name: String,
+        channel: SendChannel<Pair<TarArchiveEntry, ByteArray?>>
+    ) {
         launch(Dispatchers.IO) {
             ZipArchiveInputStream(input.inputStream().buffered(16 * 1024)).use {
                 while (true) {

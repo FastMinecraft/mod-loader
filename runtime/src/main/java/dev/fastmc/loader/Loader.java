@@ -15,12 +15,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 public class Loader {
-    public static File LOADER_DIR = new File("fastmc-loader");
     public static final Logger LOGGER = LogManager.getLogger();
+    public static final File LOADER_DIR = new File("fastmc-loader");
 
     public static String getFileName(String modName, String platform) {
         return modName + "-" + platform;

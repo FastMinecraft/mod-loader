@@ -68,8 +68,8 @@ abstract class GenerateConstantsTask : DefaultTask() {
         val mixinConfigs = mutableListOf<String>()
 
         val manifestFile = manifestFile.get().asFile
-            manifestFile.parentFile.mkdirs()
-            manifestFile.createNewFile()
+        manifestFile.parentFile.mkdirs()
+        manifestFile.createNewFile()
 
         generateResources(mixinConfigs)
         generateClasses(mixinConfigs)

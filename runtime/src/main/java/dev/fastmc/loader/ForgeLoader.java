@@ -22,8 +22,8 @@ import java.util.zip.ZipFile;
 @SuppressWarnings({ "NullableProblems", "RedundantThrows" })
 public class ForgeLoader implements ITransformationService {
     private static final String PLATFORM = "forge";
-    private static URLClassLoader CLASS_LOADER;
     private static final File UNPACKED = Loader.load(Constants.MOD_NAME, PLATFORM);
+    private static URLClassLoader CLASS_LOADER;
 
     @Nonnull
     @Override
@@ -54,6 +54,35 @@ public class ForgeLoader implements ITransformationService {
     }
 
     private static class Transformer implements ITransformer<ClassNode> {
+        private static void addAt() {
+            try {
+                File atFileOut = new File(
+                    Loader.LOADER_DIR,
+                    Loader.getFileName(Constants.MOD_NAME, PLATFORM) + "_at.cfg"
+                );
+                try (ZipFile zipFile = new ZipFile(UNPACKED)) {
+                    ZipEntry entry = zipFile.getEntry("META-INF/accesstransformer.cfg");
+                    try (InputStream atIn = zipFile.getInputStream(entry)) {
+                        byte[] buffer = new byte[512];
+                        try (FileOutputStream atOut = new FileOutputStream(atFileOut)) {
+                            for (int length; (length = atIn.read(buffer)) > 0; ) {
+                                atOut.write(buffer, 0, length);
+                            }
+                        }
+                    }
+                }
+
+                Class<?> fmlLoaderClass = Class.forName("net.minecraftforge.fml.loading.FMLLoader");
+                Field accessTransformerField = fmlLoaderClass.getDeclaredField("accessTransformer");
+                accessTransformerField.setAccessible(true);
+                ILaunchPluginService service = (ILaunchPluginService) Objects.requireNonNull(accessTransformerField.get(
+                    null));
+                service.offerResource(atFileOut.toPath(), UNPACKED.getName());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
         @SuppressWarnings({ "unchecked", "deprecation" })
         @Nonnull
         @Override
@@ -65,7 +94,8 @@ public class ForgeLoader implements ITransformationService {
                 Loader.LOGGER.info("Appending class loader");
                 CLASS_LOADER = new URLClassLoader(new URL[]{ UNPACKED.toURI().toURL() });
 
-                TransformingClassLoader classLoader = (TransformingClassLoader) Thread.currentThread().getContextClassLoader();
+                TransformingClassLoader classLoader = (TransformingClassLoader) Thread.currentThread()
+                    .getContextClassLoader();
                 Field resourceFinderField = TransformingClassLoader.class.getDeclaredField("resourceFinder");
                 boolean accessible = resourceFinderField.isAccessible();
                 resourceFinderField.setAccessible(true);
@@ -90,31 +120,6 @@ public class ForgeLoader implements ITransformationService {
             }
 
             return input;
-        }
-
-        private static void addAt() {
-            try {
-                File atFileOut = new File(Loader.LOADER_DIR, Loader.getFileName(Constants.MOD_NAME, PLATFORM) + "_at.cfg");
-                try (ZipFile zipFile = new ZipFile(UNPACKED)) {
-                    ZipEntry entry = zipFile.getEntry("META-INF/accesstransformer.cfg");
-                    try (InputStream atIn = zipFile.getInputStream(entry)) {
-                        byte[] buffer = new byte[512];
-                        try (FileOutputStream atOut = new FileOutputStream(atFileOut)) {
-                            for (int length; (length = atIn.read(buffer)) > 0; ) {
-                                atOut.write(buffer, 0, length);
-                            }
-                        }
-                    }
-                }
-
-                Class<?> fmlLoaderClass = Class.forName("net.minecraftforge.fml.loading.FMLLoader");
-                Field accessTransformerField = fmlLoaderClass.getDeclaredField("accessTransformer");
-                accessTransformerField.setAccessible(true);
-                ILaunchPluginService service = (ILaunchPluginService) Objects.requireNonNull(accessTransformerField.get(null));
-                service.offerResource(atFileOut.toPath(), UNPACKED.getName());
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
         }
 
         @Nonnull

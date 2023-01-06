@@ -17,7 +17,9 @@ public class FabricLoader implements PreLaunchEntrypoint {
 
             Loader.LOGGER.info("Appending class loader");
             ClassLoader classLoader = this.getClass().getClassLoader();
-            Class<?> classLoaderAccess = Class.forName("net.fabricmc.loader.impl.launch.knot.KnotClassDelegate$ClassLoaderAccess");
+            Class<?> classLoaderAccess = Class.forName(
+                "net.fabricmc.loader.impl.launch.knot.KnotClassDelegate$ClassLoaderAccess"
+            );
             Method addUrlFwd = classLoaderAccess.getDeclaredMethod("addUrlFwd", URL.class);
             addUrlFwd.setAccessible(true);
             addUrlFwd.invoke(classLoader, unpacked.toURI().toURL());

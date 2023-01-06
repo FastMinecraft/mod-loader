@@ -3,13 +3,11 @@ package dev.fastmc.loader
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
-import org.gradle.internal.enterprise.test.FileProperty
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.commons.ClassRemapper
@@ -22,7 +20,7 @@ import javax.inject.Inject
 @Suppress("LeakingThis")
 abstract class RemapRuntimeTask : DefaultTask() {
     @get:Input
-    internal abstract val modPackage : Property<String>
+    internal abstract val modPackage: Property<String>
 
     @get:InputFile
     internal abstract val runtimeJar: Property<File>
