@@ -24,7 +24,7 @@ configurations {
 
 dependencies {
     compileOnly("com.google.code.findbugs:annotations:3.0.1")
-    implementation("org.tukaani:xz:1.9")
+    implementation("org.apache.commons:commons-compress:1.22")
 
     "legacyForgeCompileOnly"("net.minecraft:launchwrapper:1.12") {
         isTransitive = false

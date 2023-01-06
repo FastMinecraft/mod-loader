@@ -4,22 +4,20 @@ package dev.fastmc.loader
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.SendChannel
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream
+import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
-import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputFiles
-import org.gradle.api.tasks.Optional
-import org.gradle.api.tasks.OutputFile
-import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.*
 import org.tukaani.xz.LZMA2Options
 import org.tukaani.xz.XZOutputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
-import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
-import java.util.zip.ZipOutputStream
 
 abstract class ModPackagingTask : DefaultTask() {
     @get:Input
@@ -36,7 +34,7 @@ abstract class ModPackagingTask : DefaultTask() {
     internal abstract val outputFile: RegularFileProperty
 
     init {
-        outputFile.set(modName.map { project.layout.buildDirectory.file("mod-loader/packed/${it}.zip.xz").get() })
+        outputFile.set(modName.map { project.layout.buildDirectory.file("mod-loader/packed/${it}.tar.xz").get() })
     }
 
     @TaskAction
@@ -44,7 +42,7 @@ abstract class ModPackagingTask : DefaultTask() {
         val outputFile = outputFile.get().asFile
         outputFile.parentFile.mkdirs()
 
-        val bytes = readToZipBytes()
+        val bytes = readToTarBytes()
         System.gc()
 
         val rawStream = outputFile.outputStream().buffered(16 * 1024)
@@ -55,29 +53,28 @@ abstract class ModPackagingTask : DefaultTask() {
         System.gc()
     }
 
-    private fun readToZipBytes(): ByteArray {
+    private fun readToTarBytes(): ByteArray {
         val byteArrayOut = ByteArrayOutputStream(4 * 1024 * 1024)
-        ZipOutputStream(byteArrayOut).use { zipOut ->
+        TarArchiveOutputStream(byteArrayOut).use { tarOut ->
             runBlocking {
-                val channel = Channel<Pair<ZipEntry, ByteArray?>>(Channel.BUFFERED)
-                zipOut.setMethod(ZipOutputStream.DEFLATED)
-                zipOut.setLevel(0)
+                tarOut.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX)
+                val channel = Channel<Pair<TarArchiveEntry, ByteArray?>>(Channel.BUFFERED)
 
                 launch(Dispatchers.IO) {
                     for (entry in channel) {
-                        zipOut.putNextEntry(entry.first)
-                        entry.second?.let { zipOut.write(it) }
-                        zipOut.closeEntry()
+                        tarOut.putArchiveEntry(entry.first)
+                        entry.second?.let { tarOut.write(it) }
+                        tarOut.closeArchiveEntry()
                     }
                 }
 
                 coroutineScope {
                     defaultPlatform.orNull?.let {
-                        pack(platformJars.get().singleFile, it.id, zipOut)
+                        pack(platformJars.get().singleFile, it.id, channel)
                     } ?: run {
                         platformJars.get().forEach { file ->
                             val platform = ModPlatform.values().find { file.name.contains(it.id) } ?: return@forEach
-                            pack(file, platform.id, zipOut)
+                            pack(file, platform.id, channel)
                         }
                     }
                 }
@@ -88,25 +85,18 @@ abstract class ModPackagingTask : DefaultTask() {
        return byteArrayOut.toByteArray()
     }
 
-    @Suppress("BlockingMethodInNonBlockingContext")
-    private fun CoroutineScope.pack(input: File, name: String, zipOut: ZipOutputStream) {
+    private fun CoroutineScope.pack(input: File, name: String, channel: SendChannel<Pair<TarArchiveEntry, ByteArray?>>) {
         launch(Dispatchers.IO) {
-            ZipInputStream(input.inputStream().buffered(16 * 1024)).use {
+            ZipArchiveInputStream(input.inputStream().buffered(16 * 1024)).use {
                 while (true) {
                     val entryIn = it.nextEntry ?: break
-                    val entryOut = ZipEntry("$name/${entryIn.name}")
-                    if (!entryIn.isDirectory) {
-                        val bytes = it.readBytes()
-
-                        this@pack.launch {
-                            entryOut.size = bytes.size.toLong()
-                            zipOut.putNextEntry(entryOut)
-                            zipOut.write(bytes)
-                        }
+                    val entryOut = TarArchiveEntry("$name/${entryIn.name}")
+                    if (entryIn.isDirectory) {
+                        channel.send(entryOut to null)
                     } else {
-                        this@pack.launch {
-                            zipOut.putNextEntry(entryOut)
-                        }
+                        val bytes = it.readBytes()
+                        entryOut.size = bytes.size.toLong()
+                        channel.send(entryOut to bytes)
                     }
                 }
             }

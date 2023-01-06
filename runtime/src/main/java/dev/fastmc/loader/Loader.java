@@ -1,8 +1,10 @@
 package dev.fastmc.loader;
 
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.compressors.xz.XZCompressorInputStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.tukaani.xz.XZInputStream;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -49,12 +51,9 @@ public class Loader {
             }
         }
 
-
         byte[] bytes;
         String checksum;
-        try (InputStream is = Objects.requireNonNull(
-            Loader.class.getClassLoader().getResourceAsStream(modName + ".zip.xz")
-        )) {
+        try (InputStream is = Objects.requireNonNull(getModPackageStream(modName))) {
             bytes = readBytes(is);
             MessageDigest md = MessageDigest.getInstance("SHA-512");
             checksum = toHexString(md.digest(bytes));
@@ -72,15 +71,15 @@ public class Loader {
         try (ZipOutputStream zipOut = getZipOut(jarFile)) {
             zipOut.setMethod(ZipOutputStream.DEFLATED);
             zipOut.setLevel(Deflater.BEST_COMPRESSION);
-            try (ZipInputStream zipIn = getZipIn(bytes)) {
-                ZipEntry entryIn;
+            try (TarArchiveInputStream tarIn = getTarIn(bytes)) {
+                ArchiveEntry entryIn;
                 String pathPrefix = platform + "/";
                 byte[] buffer = new byte[1024];
-                while ((entryIn = zipIn.getNextEntry()) != null) {
+                while ((entryIn = tarIn.getNextEntry()) != null) {
                     if (entryIn.getName().startsWith(pathPrefix)) {
                         ZipEntry entryOut = new ZipEntry(entryIn.getName().substring(pathPrefix.length()));
                         zipOut.putNextEntry(entryOut);
-                        for (int len; (len = zipIn.read(buffer)) > 0; ) {
+                        for (int len; (len = tarIn.read(buffer)) > 0; ) {
                             zipOut.write(buffer, 0, len);
                         }
                         zipOut.closeEntry();
@@ -100,6 +99,10 @@ public class Loader {
         return jarFile;
     }
 
+    private static InputStream getModPackageStream(String modName) {
+        return Loader.class.getClassLoader().getResourceAsStream(modName + ".tar.xz");
+    }
+
     private static String toHexString(byte[] bytes) {
         StringBuilder sb = new StringBuilder();
         for (byte b : bytes) {
@@ -108,8 +111,8 @@ public class Loader {
         return sb.toString();
     }
 
-    private static ZipInputStream getZipIn(byte[] bytes) throws IOException {
-        return new ZipInputStream(new XZInputStream(new ByteArrayInputStream(bytes)));
+    private static TarArchiveInputStream getTarIn(byte[] bytes) throws IOException {
+        return new TarArchiveInputStream(new XZCompressorInputStream(new ByteArrayInputStream(bytes)));
     }
 
     private static ZipOutputStream getZipOut(File file) throws IOException {
