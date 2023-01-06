@@ -123,10 +123,10 @@ abstract class GenerateConstantsTask : DefaultTask() {
         zipTree.find { it.name == "fabric.mod.json" }?.let { fabricModJson ->
             val json = JsonParser.parseString(fabricModJson.readText()).asJsonObject
 
-            json.add("entrypoints", JsonObject().apply {
-                add("preLaunch", JsonArray().apply {
-                    add("${modPackage.get()}.FabricLoader")
-                })
+            val entrypoints = json.getAsJsonObject("entrypoints")
+                ?: JsonObject().apply { json.add("entrypoints", this) }
+            entrypoints.add("preLaunch", JsonArray().apply {
+                add("${modPackage.get()}.FabricLoader")
             })
 
             json.getAsJsonArray("mixins").forEach {
@@ -156,16 +156,19 @@ abstract class GenerateConstantsTask : DefaultTask() {
             manifest.mainAttributes.getValue("MixinConfigs")
                 ?.split(',')?.mapTo(mixinConfigs) { "forge:$it" }
 
+            val newManifest = Manifest()
+
             manifest.mainAttributes.getValue("FMLAT")?.let { atName ->
                 val atFile = zipTree.find { it.name == atName }
                     ?: throw IllegalStateException("Could not find access transformer file $atName")
                 atFile.copyTo(File(resourcesDir, "META-INF/$atName"), true)
 
-                val newManifest = Manifest()
                 newManifest.mainAttributes[Attributes.Name.MANIFEST_VERSION] = "1.0"
                 newManifest.mainAttributes[Attributes.Name("FMLAT")] = atName
-                manifestFile.get().asFile.outputStream().use { newManifest.write(it) }
+                newManifest.mainAttributes[Attributes.Name("FMLCorePlugin")] = "${modPackage.get()}.LegacyForgeLoader"
             }
+
+            manifestFile.get().asFile.outputStream().use { newManifest.write(it) }
         }
     }
 }

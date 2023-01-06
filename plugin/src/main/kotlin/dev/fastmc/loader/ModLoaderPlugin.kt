@@ -67,7 +67,6 @@ class ModLoaderPlugin : Plugin<Project> {
             modLoaderJar.from(modPackaging.outputs)
 
             modLoaderJar.manifest.from(generateConstants.manifestFile)
-            modLoaderJar.manifest.attributes(mapOf("FMLCorePlugin" to extension.modPackage.map { "$it.LegacyForgeLoader" }))
         }
 
         project.artifacts {
