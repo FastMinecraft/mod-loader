@@ -4,10 +4,9 @@ package dev.fastmc.loader
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.SendChannel
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry
-import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream
+import org.apache.commons.compress.archivers.zip.ZipArchiveEntry
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
+import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.RegularFileProperty
@@ -17,6 +16,7 @@ import org.tukaani.xz.LZMA2Options
 import org.tukaani.xz.XZOutputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.util.zip.CRC32
 
 abstract class ModPackagingTask : DefaultTask() {
     @get:Input
@@ -37,7 +37,7 @@ abstract class ModPackagingTask : DefaultTask() {
     internal abstract val outputFile: RegularFileProperty
 
     init {
-        outputFile.set(modName.map { project.layout.buildDirectory.file("mod-loader/packed/${it}.tar.xz").get() })
+        outputFile.set(modName.map { project.layout.buildDirectory.file("mod-loader/packed/${it}.zip.xz").get() })
     }
 
     @TaskAction
@@ -45,7 +45,7 @@ abstract class ModPackagingTask : DefaultTask() {
         val outputFile = outputFile.get().asFile
         outputFile.parentFile.mkdirs()
 
-        val bytes = readToTarBytes()
+        val bytes = readToZipBytes()
         System.gc()
 
         val rawStream = outputFile.outputStream().buffered(16 * 1024)
@@ -56,18 +56,18 @@ abstract class ModPackagingTask : DefaultTask() {
         System.gc()
     }
 
-    private fun readToTarBytes(): ByteArray {
+    private fun readToZipBytes(): ByteArray {
         val byteArrayOut = ByteArrayOutputStream(4 * 1024 * 1024)
-        TarArchiveOutputStream(byteArrayOut).use { tarOut ->
+        ZipArchiveOutputStream(byteArrayOut).use { zipOut ->
             runBlocking {
-                tarOut.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX)
-                val channel = Channel<Pair<TarArchiveEntry, ByteArray?>>(Channel.BUFFERED)
+                zipOut.setMethod(ZipArchiveOutputStream.STORED)
+                val channel = Channel<Pair<ZipArchiveEntry, ByteArray>>(Channel.BUFFERED)
 
                 launch(Dispatchers.IO) {
                     for (entry in channel) {
-                        tarOut.putArchiveEntry(entry.first)
-                        entry.second?.let { tarOut.write(it) }
-                        tarOut.closeArchiveEntry()
+                        zipOut.putArchiveEntry(entry.first)
+                        zipOut.write(entry.second)
+                        zipOut.closeArchiveEntry()
                     }
                 }
 
@@ -91,19 +91,21 @@ abstract class ModPackagingTask : DefaultTask() {
     private fun CoroutineScope.pack(
         input: File,
         name: String,
-        channel: SendChannel<Pair<TarArchiveEntry, ByteArray?>>
+        channel: Channel<Pair<ZipArchiveEntry, ByteArray>>
     ) {
-        val filterName = forgeModClass.map { "${it.replace('.', '/')}.*\\.class".toRegex() }.orNull
         launch(Dispatchers.IO) {
+            val filterName = forgeModClass.map { "${it.replace('.', '/')}.*\\.class".toRegex() }.orNull
+            val crc32 = CRC32()
             ZipArchiveInputStream(input.inputStream().buffered(16 * 1024)).use {
                 while (true) {
                     val entryIn = it.nextEntry ?: break
                     if (filterName != null && filterName.matches(entryIn.name)) continue
-                    val entryOut = TarArchiveEntry("$name/${entryIn.name}")
-                    if (entryIn.isDirectory) {
-                        channel.send(entryOut to null)
-                    } else {
+                    val entryOut = ZipArchiveEntry("$name/${entryIn.name}")
+                    if (!entryIn.isDirectory) {
                         val bytes = it.readBytes()
+                        crc32.reset()
+                        crc32.update(bytes)
+                        entryOut.crc = crc32.value
                         entryOut.size = bytes.size.toLong()
                         channel.send(entryOut to bytes)
                     }

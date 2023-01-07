@@ -1,7 +1,5 @@
 package dev.fastmc.loader;
 
-import org.apache.commons.compress.archivers.ArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.tukaani.xz.XZInputStream;
@@ -20,6 +18,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 public class Loader {
@@ -75,8 +74,8 @@ public class Loader {
         try (ZipOutputStream zipOut = getZipOut(jarFile)) {
             zipOut.setMethod(ZipOutputStream.DEFLATED);
             zipOut.setLevel(Deflater.BEST_COMPRESSION);
-            try (TarArchiveInputStream tarIn = getTarIn(bytes)) {
-                ArchiveEntry entryIn;
+            try (ZipInputStream tarIn = getZipIn(bytes)) {
+                ZipEntry entryIn;
                 String pathPrefix = platform + "/";
                 byte[] buffer = new byte[1024];
                 while ((entryIn = tarIn.getNextEntry()) != null) {
@@ -104,7 +103,7 @@ public class Loader {
     }
 
     private static InputStream getModPackageStream(String modName) {
-        return Loader.class.getClassLoader().getResourceAsStream(modName + ".tar.xz");
+        return Loader.class.getClassLoader().getResourceAsStream(modName + ".zip.xz");
     }
 
     private static String toHexString(byte[] bytes) {
@@ -115,8 +114,8 @@ public class Loader {
         return sb.toString();
     }
 
-    private static TarArchiveInputStream getTarIn(byte[] bytes) throws IOException {
-        return new TarArchiveInputStream(new XZInputStream(new ByteArrayInputStream(bytes)));
+    private static ZipInputStream getZipIn(byte[] bytes) throws IOException {
+        return new ZipInputStream(new XZInputStream(new ByteArrayInputStream(bytes)));
     }
 
     private static ZipOutputStream getZipOut(File file) throws IOException {
