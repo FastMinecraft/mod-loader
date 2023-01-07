@@ -4,6 +4,7 @@ import cpw.mods.modlauncher.EnumerationHelper;
 import cpw.mods.modlauncher.TransformingClassLoader;
 import cpw.mods.modlauncher.api.*;
 import cpw.mods.modlauncher.serviceapi.ILaunchPluginService;
+import net.minecraftforge.fml.loading.ModDirTransformerDiscoverer;
 import org.objectweb.asm.tree.ClassNode;
 
 import javax.annotation.Nonnull;
@@ -14,6 +15,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Function;
 import java.util.zip.ZipEntry;
@@ -33,7 +35,15 @@ public class ForgeLoader implements ITransformationService {
 
     @Override
     public void initialize(IEnvironment environment) {
-
+        try {
+            Field transformersField = ModDirTransformerDiscoverer.class.getDeclaredField("transformers");
+            transformersField.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            List<Path> transformers = (List<Path>) transformersField.get(null);
+            transformers.remove(Loader.getSelfJarPath());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

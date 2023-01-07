@@ -24,6 +24,7 @@ class ModLoaderPlugin : Plugin<Project> {
 
                 generateConstants.modName.set(extension.modName)
                 generateConstants.modPackage.set(extension.modPackage)
+                generateConstants.forgeModClass.set(extension.forgeModClass)
                 generateConstants.defaultPlatform.set(extension.defaultPlatform)
                 generateConstants.platformJars.set(platformJarFiles)
             }
@@ -48,6 +49,7 @@ class ModLoaderPlugin : Plugin<Project> {
             modPackaging.dependsOn(platforms.get().artifacts)
 
             modPackaging.modName.set(extension.modName)
+            modPackaging.forgeModClass.set(extension.forgeModClass)
             modPackaging.defaultPlatform.set(extension.defaultPlatform)
             modPackaging.platformJars.set(platformJarFiles)
         }

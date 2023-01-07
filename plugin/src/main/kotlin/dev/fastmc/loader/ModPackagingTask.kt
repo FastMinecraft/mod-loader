@@ -24,6 +24,10 @@ abstract class ModPackagingTask : DefaultTask() {
 
     @get:Optional
     @get:Input
+    internal abstract val forgeModClass: Property<String>
+
+    @get:Optional
+    @get:Input
     internal abstract val defaultPlatform: Property<ModPlatform>
 
     @get:InputFiles
@@ -89,10 +93,12 @@ abstract class ModPackagingTask : DefaultTask() {
         name: String,
         channel: SendChannel<Pair<TarArchiveEntry, ByteArray?>>
     ) {
+        val filterName = forgeModClass.map { "${it.replace('.', '/')}.*\\.class".toRegex() }.orNull
         launch(Dispatchers.IO) {
             ZipArchiveInputStream(input.inputStream().buffered(16 * 1024)).use {
                 while (true) {
                     val entryIn = it.nextEntry ?: break
+                    if (filterName != null && filterName.matches(entryIn.name)) continue
                     val entryOut = TarArchiveEntry("$name/${entryIn.name}")
                     if (entryIn.isDirectory) {
                         channel.send(entryOut to null)

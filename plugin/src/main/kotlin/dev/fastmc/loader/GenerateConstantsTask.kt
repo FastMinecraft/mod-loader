@@ -23,6 +23,10 @@ abstract class GenerateConstantsTask : DefaultTask() {
 
     @get:Optional
     @get:Input
+    internal abstract val forgeModClass: Property<String>
+
+    @get:Optional
+    @get:Input
     internal abstract val defaultPlatform: Property<ModPlatform>
 
     @get:InputFiles
@@ -64,6 +68,8 @@ abstract class GenerateConstantsTask : DefaultTask() {
         val resourceDir = resourcesDir.get().asFile
         resourceDir.deleteRecursively()
         resourceDir.mkdirs()
+
+        File(resourceDir, "META-INF").mkdirs()
 
         val mixinConfigs = mutableListOf<String>()
 
@@ -120,7 +126,7 @@ abstract class GenerateConstantsTask : DefaultTask() {
         val gson = GsonBuilder().setPrettyPrinting().create()
         val zipTree = project.zipTree(file)
 
-        zipTree.find { it.name == "fabric.mod.json" }?.let { fabricModJson ->
+        zipTree.findByName("fabric.mod.json")?.let { fabricModJson ->
             val json = JsonParser.parseString(fabricModJson.readText()).asJsonObject
 
             val entrypoints = json.getAsJsonObject("entrypoints")
@@ -136,9 +142,7 @@ abstract class GenerateConstantsTask : DefaultTask() {
             json.remove("mixins")
 
             json.get("accessWidener")?.asString?.let { accessWidener ->
-                zipTree.find {
-                    it.name == accessWidener
-                }?.copyTo(File(resourcesDir, accessWidener), true)
+                zipTree.findByName(accessWidener)?.copyTo(File(resourcesDir, accessWidener), true)
             }
 
             File(resourcesDir, "fabric.mod.json").bufferedWriter().use {
@@ -149,26 +153,43 @@ abstract class GenerateConstantsTask : DefaultTask() {
 
     private fun forge(file: File, mixinConfigs: MutableList<String>, resourcesDir: File) {
         val zipTree = project.zipTree(file)
+        val newManifest = Manifest()
+        newManifest.mainAttributes[Attributes.Name.MANIFEST_VERSION] = "1.0"
+        newManifest.mainAttributes[Attributes.Name("FMLCorePlugin")] = "${modPackage.get()}.LegacyForgeLoader"
 
-        zipTree.find { it.name == "MANIFEST.MF" }?.let { oldManifestFile ->
+        zipTree.findByName("MANIFEST.MF")?.let { oldManifestFile ->
             val manifest = Manifest(oldManifestFile.inputStream())
 
             manifest.mainAttributes.getValue("MixinConfigs")
                 ?.split(',')?.mapTo(mixinConfigs) { "forge:$it" }
 
-            val newManifest = Manifest()
-
             manifest.mainAttributes.getValue("FMLAT")?.let { atName ->
-                val atFile = zipTree.find { it.name == atName }
+                val atFile = zipTree.findByName(atName)
                     ?: throw IllegalStateException("Could not find access transformer file $atName")
                 atFile.copyTo(File(resourcesDir, "META-INF/$atName"), true)
 
-                newManifest.mainAttributes[Attributes.Name.MANIFEST_VERSION] = "1.0"
                 newManifest.mainAttributes[Attributes.Name("FMLAT")] = atName
-                newManifest.mainAttributes[Attributes.Name("FMLCorePlugin")] = "${modPackage.get()}.LegacyForgeLoader"
             }
-
-            manifestFile.get().asFile.outputStream().use { newManifest.write(it) }
         }
+
+        forgeModClass.orNull?.let { forgeModClass ->
+            newManifest.mainAttributes[Attributes.Name("FMLCorePluginContainsFMLMod")] = "true"
+            zipTree.findByName("mcmod.info")?.copyTo(File(resourcesDir, "mcmod.info"), true)
+            zipTree.findByName("pack.mcmeta")?.copyTo(File(resourcesDir, "pack.mcmeta"), true)
+            zipTree.findByName("mods.toml")?.copyTo(File(resourcesDir, "META-INF/mods.toml"), true)
+            val forgeModClassRegex = "$forgeModClass.*\\.class".toRegex()
+            val forgeModPackage = forgeModClass.substringBeforeLast('.').replace('.', '/')
+            zipTree
+                .filter { it.path.contains(forgeModClassRegex) }
+                .forEach {
+                    it.copyTo(File(resourcesDir, "$forgeModPackage/${it.name}"), true)
+                }
+        }
+
+        manifestFile.get().asFile.outputStream().use { newManifest.write(it) }
+    }
+
+    private fun Iterable<File>.findByName(name: String): File? {
+        return find { it.name == name }
     }
 }

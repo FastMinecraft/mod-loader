@@ -2,12 +2,17 @@ package dev.fastmc.loader;
 
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.apache.commons.compress.compressors.xz.XZCompressorInputStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.tukaani.xz.XZInputStream;
 
 import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -111,7 +116,7 @@ public class Loader {
     }
 
     private static TarArchiveInputStream getTarIn(byte[] bytes) throws IOException {
-        return new TarArchiveInputStream(new XZCompressorInputStream(new ByteArrayInputStream(bytes)));
+        return new TarArchiveInputStream(new XZInputStream(new ByteArrayInputStream(bytes)));
     }
 
     private static ZipOutputStream getZipOut(File file) throws IOException {
@@ -128,5 +133,11 @@ public class Loader {
             }
         }
         return Arrays.copyOf(buffer, read);
+    }
+
+    public static Path getSelfJarPath() throws MalformedURLException, URISyntaxException {
+        String classFileName = Loader.class.getName().replace('.', '/') + ".class";
+        URL classUrl = Objects.requireNonNull(Loader.class.getClassLoader().getResource(classFileName));
+        return Paths.get(new URL(classUrl.getPath().substring(0, classUrl.getPath().lastIndexOf('!'))).toURI());
     }
 }

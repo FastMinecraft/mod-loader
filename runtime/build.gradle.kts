@@ -13,22 +13,18 @@ val legacyForge by sourceSets.creating {
     runtimeClasspath += sourceSets.main.get().output
 }
 
-configurations {
-    getByName("legacyForgeCompileClasspath") {
-        extendsFrom(configurations.compileClasspath.get())
-        resolutionStrategy {
-            force("net.minecraftforge:forge:1.12.2-14.23.5.2860")
-        }
-    }
-}
-
 dependencies {
     compileOnly("com.google.code.findbugs:annotations:3.0.1")
     implementation("org.apache.commons:commons-compress:1.22")
+    implementation("org.tukaani:xz:1.9")
 
     "legacyForgeCompileOnly"("net.minecraft:launchwrapper:1.12") {
         isTransitive = false
     }
+    "legacyForgeCompileOnly"("net.minecraftforge:forge:1.12.2-14.23.5.2860:universal") {
+        isTransitive = false
+    }
+    "legacyForgeCompileOnly"("org.apache.logging.log4j:log4j-api:2.8.1")
 
     compileOnly("net.fabricmc:fabric-loader:0.14.9") {
         isTransitive = false
@@ -38,6 +34,9 @@ dependencies {
         isTransitive = false
     }
     compileOnly("org.ow2.asm:asm-tree:7.2")
+    compileOnly("net.minecraftforge:forge:1.16.5-36.2.34:launcher") {
+        isTransitive = false
+    }
     compileOnly("net.minecraftforge:forge:1.16.5-36.2.34:universal") {
         isTransitive = false
     }
