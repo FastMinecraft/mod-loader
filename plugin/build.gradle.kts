@@ -1,8 +1,8 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm")
     `java-gradle-plugin`
+    kotlin("jvm")
 }
 
 repositories {
@@ -34,14 +34,13 @@ gradlePlugin {
 }
 
 java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
     withSourcesJar()
 }
 
 tasks {
-    withType(org.gradle.jvm.tasks.Jar::class.java) {
-        archiveBaseName.set("mod-loader-plugin")
-    }
-
     withType(KotlinCompile::class.java) {
         kotlinOptions {
             jvmTarget = "17"
