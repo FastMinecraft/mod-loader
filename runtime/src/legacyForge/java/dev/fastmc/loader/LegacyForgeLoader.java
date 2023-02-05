@@ -35,12 +35,6 @@ public class LegacyForgeLoader implements IFMLLoadingPlugin {
             );
             Method init = mixinBootstrap.getDeclaredMethod("init");
             init.invoke(null);
-
-//            Class<?> mixins = Class.forName("org.spongepowered.asm.mixin.Mixins", true, appClassLoader);
-//            Method addConfiguration = mixins.getDeclaredMethod("addConfigurations", String[].class);
-//            String[] mixinConfigs = Loader.getMixinConfigs(PLATFORM);
-//            Loader.LOGGER.info("Loading mixin configs: " + Arrays.toString(mixinConfigs));
-//            addConfiguration.invoke(null, (Object) mixinConfigs);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
