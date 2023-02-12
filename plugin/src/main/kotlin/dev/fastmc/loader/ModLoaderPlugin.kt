@@ -61,7 +61,7 @@ class ModLoaderPlugin : Plugin<Project> {
 
         val modLoaderJar = project.tasks.create("modLoaderJar", Jar::class.java) { modLoaderJar ->
             modLoaderJar.dependsOn(generateConstants)
-            modLoaderJar.from(compileConstants.outputs)
+            modLoaderJar.from(compileConstants.destinationDirectory)
             modLoaderJar.from(remapRuntimeTask.outputs)
             modLoaderJar.from(generateConstants.resourcesDir) {
                 it.exclude("MANIFEST.MF")
