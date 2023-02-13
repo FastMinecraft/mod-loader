@@ -10,11 +10,13 @@ abstract class ModLoaderExtension {
     abstract val modPackage: Property<String>
     abstract val forgeModClass: Property<String>
     abstract val defaultPlatform: Property<ModPlatform>
+    abstract val mcVersion: Property<String>
 
     @get:Inject
     internal abstract val project: Project
 
     init {
         modName.convention(project.rootProject.name)
+        mcVersion.convention("1.12.2")
     }
 }

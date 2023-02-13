@@ -17,13 +17,29 @@ class ModLoaderPlugin : Plugin<Project> {
 
         project.dependencies.add(runtimeConfiguration.name, "dev.fastmc:mod-loader-runtime:$version")
 
+        project.afterEvaluate {
+            val mcVersion = extension.mcVersion.get()
+            val ver = mcVersion.split('.')[1].toIntOrNull() ?: 0
+            if (ver >= 13) {
+                project.dependencies.add(runtimeConfiguration.name, "dev.fastmc:mod-loader-runtime:$version:fabric")
+                when (ver) {
+                    in 13..17 -> project.dependencies.add(runtimeConfiguration.name, "dev.fastmc:mod-loader-runtime:$version:forge-1.16")
+                    18 -> project.dependencies.add(runtimeConfiguration.name, "dev.fastmc:mod-loader-runtime:$version:forge-1.18")
+                    19 -> project.dependencies.add(runtimeConfiguration.name, "dev.fastmc:mod-loader-runtime:$version:forge-1.19")
+                    else -> throw IllegalStateException("Unsupported Minecraft version: $mcVersion")
+                }
+            } else {
+                project.dependencies.add(runtimeConfiguration.name, "dev.fastmc:mod-loader-runtime:$version:legacy-forge")
+            }
+        }
+
         val generateConstants =
             project.tasks.create("generateConstants", GenerateConstantsTask::class.java) { generateConstants ->
                 generateConstants.dependsOn(platforms)
                 generateConstants.dependsOn(platforms.get().artifacts)
 
                 generateConstants.modName.set(extension.modName)
-                generateConstants.modPackage.set(extension.modPackage)
+                generateConstants.modPackage.set(extension.modPackage.map { "${it}Loader" })
                 generateConstants.forgeModClass.set(extension.forgeModClass)
                 generateConstants.defaultPlatform.set(extension.defaultPlatform)
                 generateConstants.platformJars.set(platformJarFiles)
@@ -55,8 +71,8 @@ class ModLoaderPlugin : Plugin<Project> {
         }
 
         val remapRuntimeTask = project.tasks.create("remapRuntime", RemapRuntimeTask::class.java) { remapRuntime ->
-            remapRuntime.modPackage.set(extension.modPackage)
-            remapRuntime.runtimeJar.set(project.provider { runtimeConfiguration.singleFile })
+            remapRuntime.modPackage.set(extension.modPackage.map { "${it}Loader" })
+            remapRuntime.runtimeJars.setFrom(runtimeConfiguration)
         }
 
         val modLoaderJar = project.tasks.create("modLoaderJar", Jar::class.java) { modLoaderJar ->

@@ -1,5 +1,7 @@
 package dev.fastmc.loader;
 
+import dev.fastmc.loader.core.Constants;
+import dev.fastmc.loader.core.Loader;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraft.launchwrapper.LaunchClassLoader;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;

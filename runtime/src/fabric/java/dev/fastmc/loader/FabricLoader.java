@@ -1,5 +1,7 @@
 package dev.fastmc.loader;
 
+import dev.fastmc.loader.core.Constants;
+import dev.fastmc.loader.core.Loader;
 import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint;
 
 import java.io.File;

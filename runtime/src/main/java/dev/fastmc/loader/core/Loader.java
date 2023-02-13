@@ -1,11 +1,10 @@
-package dev.fastmc.loader;
+package dev.fastmc.loader.core;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.tukaani.xz.XZInputStream;
 
 import java.io.*;
-import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -134,9 +133,11 @@ public class Loader {
         return Arrays.copyOf(buffer, read);
     }
 
-    public static Path getSelfJarPath() throws MalformedURLException, URISyntaxException {
-        String classFileName = Loader.class.getName().replace('.', '/') + ".class";
-        URL classUrl = Objects.requireNonNull(Loader.class.getClassLoader().getResource(classFileName));
-        return Paths.get(new URL(classUrl.getPath().substring(0, classUrl.getPath().lastIndexOf('!'))).toURI());
+    public static Path getSelfJarPath() throws URISyntaxException {
+        return Paths.get(getSelfJarUrl().toURI());
+    }
+
+    public static URL getSelfJarUrl() {
+        return Loader.class.getProtectionDomain().getCodeSource().getLocation();
     }
 }

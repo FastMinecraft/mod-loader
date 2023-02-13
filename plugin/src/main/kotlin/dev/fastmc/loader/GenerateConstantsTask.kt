@@ -82,11 +82,11 @@ abstract class GenerateConstantsTask : DefaultTask() {
     }
 
     private fun generateClasses(mixinConfigs: List<String>) {
-        val dir = File(sourcesDir.asFile.get(), modPackage.get().replace('.', '/'))
+        val dir = File(File(sourcesDir.asFile.get(), modPackage.get().replace('.', '/')), "core")
         dir.mkdirs()
         File(dir, "Constants.java").writeText(
             constantsSrc.format(
-                modPackage.get(),
+                "${modPackage.get()}.core",
                 modName.get(),
                 mixinConfigs.joinToString(",")
             )
@@ -98,7 +98,8 @@ abstract class GenerateConstantsTask : DefaultTask() {
         resourcesDir.mkdirs()
         val servicesDir = File(resourcesDir, "META-INF/services")
         servicesDir.mkdirs()
-        File(servicesDir, "cpw.mods.modlauncher.api.ITransformationService")
+
+        File(servicesDir, "net.minecraftforge.forgespi.locating.IModLocator")
             .writeText("${modPackage.get()}.ForgeLoader")
 
         defaultPlatform.orNull?.let {
