@@ -6,19 +6,17 @@ import net.minecraft.launchwrapper.Launch;
 import net.minecraft.launchwrapper.LaunchClassLoader;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 
-import java.io.File;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Map;
 
 public class LegacyForgeLoader implements IFMLLoadingPlugin {
-    private static final String PLATFORM = "forge";
+    public static final String PLATFORM = "forge";
+    public static final URL UNPACKED_MOD = Loader.loadMod(Constants.MOD_NAME, PLATFORM);
 
     public LegacyForgeLoader() {
         try {
-            File unpacked = Loader.load(Constants.MOD_NAME, PLATFORM);
-            URL unpackedURL = unpacked.toURI().toURL();
 
             Loader.LOGGER.info("Appending class loader");
             LaunchClassLoader launchClassLoader = Launch.classLoader;
@@ -26,8 +24,8 @@ public class LegacyForgeLoader implements IFMLLoadingPlugin {
 
             Method addURLMethod = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
             addURLMethod.setAccessible(true);
-            addURLMethod.invoke(appClassLoader, unpackedURL);
-            addURLMethod.invoke(launchClassLoader, unpackedURL);
+            addURLMethod.invoke(appClassLoader, UNPACKED_MOD);
+            addURLMethod.invoke(launchClassLoader, UNPACKED_MOD);
 
             Loader.LOGGER.info("Initializing mixin bootstrap");
             Class<?> mixinBootstrap = Class.forName(

@@ -65,7 +65,10 @@ class ModLoaderPlugin : Plugin<Project> {
             modPackaging.dependsOn(platforms.get().artifacts)
 
             modPackaging.modName.set(extension.modName)
+            modPackaging.modPackage.set(extension.modPackage)
             modPackaging.forgeModClass.set(extension.forgeModClass)
+
+            modPackaging.splitLibs.add(extension.mcVersion.map { if ((it.split('.')[1].toIntOrNull() ?: 0) >= 18) "forge" else "" })
             modPackaging.defaultPlatform.set(extension.defaultPlatform)
             modPackaging.platformJars.set(platformJarFiles)
         }

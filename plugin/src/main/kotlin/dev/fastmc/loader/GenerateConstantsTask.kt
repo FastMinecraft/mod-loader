@@ -96,11 +96,6 @@ abstract class GenerateConstantsTask : DefaultTask() {
     private fun generateResources(mixinConfigs: MutableList<String>) {
         val resourcesDir = resourcesDir.asFile.get()
         resourcesDir.mkdirs()
-        val servicesDir = File(resourcesDir, "META-INF/services")
-        servicesDir.mkdirs()
-
-        File(servicesDir, "net.minecraftforge.forgespi.locating.IModLocator")
-            .writeText("${modPackage.get()}.ForgeLoader")
 
         defaultPlatform.orNull?.let {
             val file = platformJars.get().singleFile

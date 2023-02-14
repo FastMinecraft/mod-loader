@@ -6,20 +6,20 @@ import net.minecraftforge.fml.loading.moddiscovery.AbstractJarFileLocator;
 import net.minecraftforge.fml.loading.moddiscovery.ModFile;
 import net.minecraftforge.forgespi.locating.IModFile;
 
-import java.nio.file.Path;
+import java.net.URL;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 public class ForgeLoader extends AbstractJarFileLocator {
-    private static final String PLATFORM = "forge";
+    public static final String PLATFORM = "forge";
+    public static final URL UNPACKED_MOD = Loader.loadMod(Constants.MOD_NAME, PLATFORM);
 
     @Override
     public List<IModFile> scanMods() {
-        Path unpacked = Loader.load(Constants.MOD_NAME, PLATFORM).toPath();
-
         try {
-            ModFile modFile = ModFile.newFMLInstance(unpacked, this);
+            ModFile modFile = ModFile.newFMLInstance(Paths.get(UNPACKED_MOD.toURI()), this);
             modJars.put(modFile, createFileSystem(modFile));
             return Collections.singletonList(modFile);
         } catch (Exception e) {

@@ -43,11 +43,12 @@ abstract class RemapRuntimeTask : DefaultTask() {
         output.mkdirs()
 
         val packageRegex = "dev.fastmc.loader".toRegex()
-        val newPackage = modPackage.get().replace('.', '/')
+        val newPackage = modPackage.get()
+        val newInternalPackage = newPackage.replace('.', '/')
 
         val remapper = object : Remapper() {
             override fun map(internalName: String): String {
-                return internalName.replace(packageRegex, newPackage)
+                return internalName.replace(packageRegex, newInternalPackage)
             }
         }
 
@@ -55,10 +56,15 @@ abstract class RemapRuntimeTask : DefaultTask() {
             ZipInputStream(it.inputStream().buffered(16 * 1024)).use { zipIn ->
                 while (true) {
                     val entry = zipIn.nextEntry ?: break
-                    val fileTo = File(output, entry.name.replace(packageRegex, newPackage))
+                    val fileTo = File(output, entry.name.replace(packageRegex, newInternalPackage))
                     when {
                         entry.isDirectory -> {
                             // Ignored
+                        }
+                        entry.name.startsWith("META-INF/services/") -> {
+                            val text = zipIn.readBytes().toString(Charsets.UTF_8)
+                            fileTo.parentFile.mkdirs()
+                            fileTo.writeText(text.replace(packageRegex, newPackage))
                         }
                         entry.name.endsWith(".class") -> {
                             val bytes = zipIn.readBytes()

@@ -10,13 +10,12 @@ import java.net.URL;
 import java.util.Arrays;
 
 public class FabricLoader implements PreLaunchEntrypoint {
-    private static final String PLATFORM = "fabric";
+    public static final String PLATFORM = "fabric";
+    public static final URL UNPACKED_MOD = Loader.loadMod(Constants.MOD_NAME, PLATFORM);
 
     @Override
     public void onPreLaunch() {
         try {
-            File unpacked = Loader.load(Constants.MOD_NAME, PLATFORM);
-
             Loader.LOGGER.info("Appending class loader");
             ClassLoader classLoader = this.getClass().getClassLoader();
             Class<?> classLoaderAccess = Class.forName(
@@ -24,7 +23,7 @@ public class FabricLoader implements PreLaunchEntrypoint {
             );
             Method addUrlFwd = classLoaderAccess.getDeclaredMethod("addUrlFwd", URL.class);
             addUrlFwd.setAccessible(true);
-            addUrlFwd.invoke(classLoader, unpacked.toURI().toURL());
+            addUrlFwd.invoke(classLoader, UNPACKED_MOD);
 
             Class<?> mixins = Class.forName("org.spongepowered.asm.mixin.Mixins");
             Method addConfiguration = mixins.getDeclaredMethod("addConfigurations", String[].class);

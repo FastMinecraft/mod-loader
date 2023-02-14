@@ -46,9 +46,13 @@ dependencies {
     "forge116CompileOnly"("org.apache.commons:commons-lang3:3.12.0")
 
     lib118("net.minecraftforge:fmlloader:1.18.2-40.1.0")
+    "forge118CompileOnly"("cpw.mods:securejarhandler:1.0.3")
+    "forge118CompileOnly"("cpw.mods:modlauncher:9.1.3")
     "forge118CompileOnly"("net.minecraftforge:forgespi:4.0.15-4.x")
 
     lib119("net.minecraftforge:fmlloader:1.19.2-43.0.0")
+    "forge119CompileOnly"("cpw.mods:securejarhandler:2.1.4")
+    "forge119CompileOnly"("cpw.mods:modlauncher:10.0.8")
     "forge119CompileOnly"("net.minecraftforge:forgespi:6.0.0")
 }
 
@@ -61,13 +65,16 @@ afterEvaluate {
 
 tasks {
     fun JavaCompile.setCompilerVersion(version: Int) {
+        val fullVersion = if (version <= 8) "1.$version" else version.toString()
+        this.sourceCompatibility = fullVersion
+        this.targetCompatibility = fullVersion
         javaToolchains {
             javaCompiler.set(compilerFor { languageVersion.set(JavaLanguageVersion.of(version)) })
         }
     }
 
     withType(JavaCompile::class) { setCompilerVersion(8) }
-    named<JavaCompile>(forge118.compileJavaTaskName) { setCompilerVersion(16) }
+    named<JavaCompile>(forge118.compileJavaTaskName) { setCompilerVersion(17) }
     named<JavaCompile>(forge119.compileJavaTaskName) { setCompilerVersion(17) }
 
     shadowJar {

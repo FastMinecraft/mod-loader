@@ -5,6 +5,7 @@ import org.apache.logging.log4j.Logger;
 import org.tukaani.xz.XZInputStream;
 
 import java.io.*;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -38,10 +39,27 @@ public class Loader {
         return mixins.toArray(new String[0]);
     }
 
+    public static URL loadLib(String modName, String platform) {
+        return load(modName, platform + "-libs");
+    }
+
+    public static URL loadMod(String modName, String platform) {
+        return load(modName, platform);
+    }
+
+    private static URL load(String modName, String classifier) {
+        File file = loadFile(modName, classifier);
+        try {
+            return file.toURI().toURL();
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @SuppressWarnings("ResultOfMethodCallIgnored")
-    public static File load(String modName, String platform) {
+    private static File loadFile(String modName, String classifier) {
         LOADER_DIR.mkdirs();
-        String fileName = getFileName(modName, platform);
+        String fileName = modName + "-" + classifier;
         File jarFile = new File(LOADER_DIR, fileName + ".jar");
         File checksumFile = new File(LOADER_DIR, fileName + ".sha512");
         String cachedCheckSum = null;
@@ -75,7 +93,7 @@ public class Loader {
             zipOut.setLevel(Deflater.BEST_COMPRESSION);
             try (ZipInputStream tarIn = getZipIn(bytes)) {
                 ZipEntry entryIn;
-                String pathPrefix = platform + "/";
+                String pathPrefix = classifier + "/";
                 byte[] buffer = new byte[1024];
                 while ((entryIn = tarIn.getNextEntry()) != null) {
                     if (entryIn.getName().startsWith(pathPrefix)) {
