@@ -22,11 +22,12 @@ public class ForgeLoader extends AbstractJarFileLocator {
     @Override
     public List<IModFile> scanMods() {
         try {
+            Loader.LOGGER.info("Loading mod into fml");
             ClassLoader cl = Thread.currentThread().getContextClassLoader();
             InjectClassLoader.hackInModuleClassLoader(cl, UNPACKED_LIB);
             return Collections.singletonList(createMod(Paths.get(UNPACKED_MOD.toURI())).get());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        } catch (Throwable t) {
+            throw new RuntimeException(t);
         }
     }
 

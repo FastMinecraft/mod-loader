@@ -30,8 +30,9 @@ public class InjectClassLoader extends URLClassLoader {
         super(new URL[0], parent);
         this.target = parent;
         this.ucp = UCP_GETTER.invoke(this);
-        Loader.LOGGER.info("Injecting classloader " + parent.toString());
+        Loader.LOGGER.debug("Injecting classloader " + parent.toString());
     }
+
     @Override
     protected void addURL(URL url) {
         packageNames.addAll(readPackageList(url));
@@ -56,7 +57,7 @@ public class InjectClassLoader extends URLClassLoader {
             if (c == null) {
                 try {
                     c = (Class<?>) CLASSLOADER_FIND_LOADED_CLASS.invoke(target, name);
-                } catch (Throwable e) {
+                } catch (Throwable t) {
                     // ignore
                 }
             }
@@ -207,7 +208,6 @@ public class InjectClassLoader extends URLClassLoader {
         // Do nothing
     }
 
-
     private static final String UNIQUE_KEY = "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";
 
     private static final MethodHandle UCP_GETTER;
@@ -315,46 +315,42 @@ public class InjectClassLoader extends URLClassLoader {
                     ProtectionDomain.class
                 )
             );
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
+        } catch (Throwable t) {
+            throw new RuntimeException(t);
         }
     }
 
     @SuppressWarnings({ "unchecked", "SynchronizationOnLocalVariableOrMethodParameter" })
-    public static void hackInModuleClassLoader(ClassLoader target, URL url) {
+    public static void hackInModuleClassLoader(ClassLoader target, URL url) throws Throwable {
         List<String> packages = readPackageList(url);
 
-        try {
-            Class<? extends ClassLoader> moduleClassLoaderClass = target.getClass();
-            Map<String, ClassLoader> parentLoaders = (Map<String, ClassLoader>) UnsafeUtil.TRUSTED_LOOKUP.findGetter(
-                moduleClassLoaderClass,
-                "parentLoaders",
-                Map.class
-            ).invoke(target);
+        Class<? extends ClassLoader> moduleClassLoaderClass = target.getClass();
+        Map<String, ClassLoader> parentLoaders = (Map<String, ClassLoader>) UnsafeUtil.TRUSTED_LOOKUP.findGetter(
+            moduleClassLoaderClass,
+            "parentLoaders",
+            Map.class
+        ).invoke(target);
 
-            if (injectClassLoader == null) {
-                synchronized (parentLoaders) {
-                    injectClassLoader = parentLoaders.get(UNIQUE_KEY);
-                    if (injectClassLoader == null) {
-                        injectClassLoader = new InjectClassLoader(target);
-                        parentLoaders.put(UNIQUE_KEY, injectClassLoader);
-                    }
-                    UnsafeUtil.TRUSTED_LOOKUP.findVirtual(
-                        injectClassLoader.getClass(),
-                        "addURL",
-                        MethodType.methodType(void.class, URL.class)
-                    ).invoke(injectClassLoader, url);
+        if (injectClassLoader == null) {
+            synchronized (parentLoaders) {
+                injectClassLoader = parentLoaders.get(UNIQUE_KEY);
+                if (injectClassLoader == null) {
+                    injectClassLoader = new InjectClassLoader(target);
+                    parentLoaders.put(UNIQUE_KEY, injectClassLoader);
                 }
+                UnsafeUtil.TRUSTED_LOOKUP.findVirtual(
+                    injectClassLoader.getClass(),
+                    "addURL",
+                    MethodType.methodType(void.class, URL.class)
+                ).invoke(injectClassLoader, url);
             }
-
-            for (String packageName : packages) {
-                parentLoaders.put(packageName, injectClassLoader);
-            }
-
-            addResolvedRoot(target, url);
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
         }
+
+        for (String packageName : packages) {
+            parentLoaders.put(packageName, injectClassLoader);
+        }
+
+        addResolvedRoot(target, url);
     }
 
     @SuppressWarnings("unchecked")
@@ -380,35 +376,32 @@ public class InjectClassLoader extends URLClassLoader {
                 }
             }
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            // ignored
         }
+
         return packages;
     }
 
-    private static Object newJarModuleReference(URL url) {
-        try {
-            Class<?> jarModuleReferenceClass = Class.forName("cpw.mods.cl.JarModuleFinder$JarModuleReference");
-            Class<?> secureJarClass = Class.forName("cpw.mods.jarhandling.SecureJar");
-            Class<?> moduleDataProviderClass = Class.forName("cpw.mods.jarhandling.SecureJar$ModuleDataProvider");
+    private static Object newJarModuleReference(URL url) throws Throwable {
+        Class<?> jarModuleReferenceClass = Class.forName("cpw.mods.cl.JarModuleFinder$JarModuleReference");
+        Class<?> secureJarClass = Class.forName("cpw.mods.jarhandling.SecureJar");
+        Class<?> moduleDataProviderClass = Class.forName("cpw.mods.jarhandling.SecureJar$ModuleDataProvider");
 
-            Object jar = UnsafeUtil.TRUSTED_LOOKUP.findStatic(
-                secureJarClass,
-                "from",
-                MethodType.methodType(secureJarClass, Path[].class)
-            ).invoke(Paths.get(url.toURI()));
+        Object jar = UnsafeUtil.TRUSTED_LOOKUP.findStatic(
+            secureJarClass,
+            "from",
+            MethodType.methodType(secureJarClass, Path[].class)
+        ).invoke(Paths.get(url.toURI()));
 
-            Object moduleDataProvider = UnsafeUtil.TRUSTED_LOOKUP.findVirtual(
-                secureJarClass,
-                "moduleDataProvider",
-                MethodType.methodType(moduleDataProviderClass)
-            ).invoke(jar);
+        Object moduleDataProvider = UnsafeUtil.TRUSTED_LOOKUP.findVirtual(
+            secureJarClass,
+            "moduleDataProvider",
+            MethodType.methodType(moduleDataProviderClass)
+        ).invoke(jar);
 
-            return UnsafeUtil.TRUSTED_LOOKUP.findConstructor(
-                jarModuleReferenceClass,
-                MethodType.methodType(void.class, moduleDataProviderClass)
-            ).invoke(moduleDataProvider);
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
+        return UnsafeUtil.TRUSTED_LOOKUP.findConstructor(
+            jarModuleReferenceClass,
+            MethodType.methodType(void.class, moduleDataProviderClass)
+        ).invoke(moduleDataProvider);
     }
 }

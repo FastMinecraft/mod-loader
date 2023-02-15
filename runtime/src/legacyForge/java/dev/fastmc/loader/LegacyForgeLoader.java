@@ -18,7 +18,7 @@ public class LegacyForgeLoader implements IFMLLoadingPlugin {
     public LegacyForgeLoader() {
         try {
 
-            Loader.LOGGER.info("Appending class loader");
+            Loader.LOGGER.info("Loading mod into classloader");
             LaunchClassLoader launchClassLoader = Launch.classLoader;
             ClassLoader appClassLoader = LaunchClassLoader.class.getClassLoader();
 
@@ -27,7 +27,7 @@ public class LegacyForgeLoader implements IFMLLoadingPlugin {
             addURLMethod.invoke(appClassLoader, UNPACKED_MOD);
             addURLMethod.invoke(launchClassLoader, UNPACKED_MOD);
 
-            Loader.LOGGER.info("Initializing mixin bootstrap");
+            Loader.LOGGER.debug("Initializing mixin bootstrap");
             Class<?> mixinBootstrap = Class.forName(
                 "org.spongepowered.asm.launch.MixinBootstrap",
                 true,

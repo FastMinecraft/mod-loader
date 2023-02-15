@@ -23,13 +23,25 @@ class ModLoaderPlugin : Plugin<Project> {
             if (ver >= 13) {
                 project.dependencies.add(runtimeConfiguration.name, "dev.fastmc:mod-loader-runtime:$version:fabric")
                 when (ver) {
-                    in 13..17 -> project.dependencies.add(runtimeConfiguration.name, "dev.fastmc:mod-loader-runtime:$version:forge-1.16")
-                    18 -> project.dependencies.add(runtimeConfiguration.name, "dev.fastmc:mod-loader-runtime:$version:forge-1.18")
-                    19 -> project.dependencies.add(runtimeConfiguration.name, "dev.fastmc:mod-loader-runtime:$version:forge-1.19")
+                    in 13..17 -> project.dependencies.add(
+                        runtimeConfiguration.name,
+                        "dev.fastmc:mod-loader-runtime:$version:forge-1.16"
+                    )
+                    18 -> project.dependencies.add(
+                        runtimeConfiguration.name,
+                        "dev.fastmc:mod-loader-runtime:$version:forge-1.18"
+                    )
+                    19 -> project.dependencies.add(
+                        runtimeConfiguration.name,
+                        "dev.fastmc:mod-loader-runtime:$version:forge-1.19"
+                    )
                     else -> throw IllegalStateException("Unsupported Minecraft version: $mcVersion")
                 }
             } else {
-                project.dependencies.add(runtimeConfiguration.name, "dev.fastmc:mod-loader-runtime:$version:legacy-forge")
+                project.dependencies.add(
+                    runtimeConfiguration.name,
+                    "dev.fastmc:mod-loader-runtime:$version:legacy-forge"
+                )
             }
         }
 
@@ -68,7 +80,9 @@ class ModLoaderPlugin : Plugin<Project> {
             modPackaging.modPackage.set(extension.modPackage)
             modPackaging.forgeModClass.set(extension.forgeModClass)
 
-            modPackaging.splitLibs.add(extension.mcVersion.map { if ((it.split('.')[1].toIntOrNull() ?: 0) >= 18) "forge" else "" })
+            modPackaging.splitLibs.add(extension.mcVersion.map {
+                if ((it.split('.')[1].toIntOrNull() ?: 0) >= 18) "forge" else ""
+            })
             modPackaging.defaultPlatform.set(extension.defaultPlatform)
             modPackaging.platformJars.set(platformJarFiles)
         }

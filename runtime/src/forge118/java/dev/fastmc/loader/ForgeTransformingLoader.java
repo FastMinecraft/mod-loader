@@ -2,6 +2,7 @@ package dev.fastmc.loader;
 
 import cpw.mods.modlauncher.api.*;
 import dev.fastmc.loader.core.Constants;
+import dev.fastmc.loader.core.Loader;
 import org.objectweb.asm.tree.ClassNode;
 
 import java.util.Collections;
@@ -35,13 +36,15 @@ public class ForgeTransformingLoader implements ITransformationService {
         @Override
         public ClassNode transform(ClassNode input, ITransformerVotingContext context) {
             try {
+                Loader.LOGGER.info("Loading libs into classloader");
                 InjectClassLoader.hackInModuleClassLoader(
                     Thread.currentThread().getContextClassLoader(),
                     ForgeLoader.UNPACKED_LIB
                 );
-            } catch (Throwable e) {
-                throw new RuntimeException(e);
+            } catch (Throwable t) {
+                throw new RuntimeException(t);
             }
+
             return input;
         }
 

@@ -4,7 +4,6 @@ import dev.fastmc.loader.core.Constants;
 import dev.fastmc.loader.core.Loader;
 import net.minecraftforge.fml.loading.moddiscovery.AbstractJarFileModLocator;
 
-import java.io.File;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -21,9 +20,12 @@ public class ForgeLoader extends AbstractJarFileModLocator {
     @Override
     public List<ModFileOrException> scanMods() {
         try {
+            Loader.LOGGER.info("Loading mod into fml");
+            ClassLoader cl = Thread.currentThread().getContextClassLoader();
+            InjectClassLoader.hackInModuleClassLoader(cl, UNPACKED_LIB);
             return Collections.singletonList(createMod(Paths.get(UNPACKED_MOD.toURI())));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        } catch (Throwable t) {
+            throw new RuntimeException(t);
         }
     }
 

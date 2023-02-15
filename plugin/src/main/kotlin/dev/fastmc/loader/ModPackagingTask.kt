@@ -10,7 +10,6 @@ import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.RegularFileProperty
-import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.SetProperty
 import org.gradle.api.tasks.*
@@ -22,7 +21,6 @@ import java.io.File
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.zip.CRC32
-import kotlin.collections.HashMap
 
 abstract class ModPackagingTask : DefaultTask() {
     @get:Input
@@ -142,7 +140,8 @@ abstract class ModPackagingTask : DefaultTask() {
 
                     if (isClass) {
                         val packageName = entryIn.name.substringBeforeLast('/').replace('/', '.')
-                        packageLists.computeIfAbsent(dir) { Collections.newSetFromMap(ConcurrentHashMap()) }.add(packageName)
+                        packageLists.computeIfAbsent(dir) { Collections.newSetFromMap(ConcurrentHashMap()) }
+                            .add(packageName)
                     }
 
                     val entryOut = ZipArchiveEntry("$dir/${entryIn.name}")

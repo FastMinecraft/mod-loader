@@ -5,13 +5,13 @@ import org.apache.logging.log4j.Logger;
 import org.tukaani.xz.XZInputStream;
 
 import java.io.*;
-import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -48,16 +48,16 @@ public class Loader {
     }
 
     private static URL load(String modName, String classifier) {
-        File file = loadFile(modName, classifier);
         try {
+            File file = loadFile(modName, classifier);
             return file.toURI().toURL();
-        } catch (MalformedURLException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
-    private static File loadFile(String modName, String classifier) {
+    private static File loadFile(String modName, String classifier) throws IOException, NoSuchAlgorithmException {
         LOADER_DIR.mkdirs();
         String fileName = modName + "-" + classifier;
         File jarFile = new File(LOADER_DIR, fileName + ".jar");
@@ -77,14 +77,12 @@ public class Loader {
             bytes = readBytes(is);
             MessageDigest md = MessageDigest.getInstance("SHA-512");
             checksum = toHexString(md.digest(bytes));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
 
-        LOGGER.info("Checksum: " + checksum);
+        LOGGER.debug("Checksum: " + checksum);
 
         if (checksum.equals(cachedCheckSum)) {
-            LOGGER.info("Using cached " + fileName + ".jar");
+            LOGGER.debug("Using cached " + fileName + ".jar");
             return jarFile;
         }
 
@@ -106,8 +104,6 @@ public class Loader {
                     }
                 }
             }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
 
         try (Writer writer = new FileWriter(checksumFile)) {
