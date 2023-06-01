@@ -2,8 +2,14 @@
 
 package dev.fastmc.loader
 
-import kotlinx.coroutines.*
+import dev.fastmc.loader.xz.LZMA2Options
+import dev.fastmc.loader.xz.ParallelXZOutputStream
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
 import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream
@@ -12,12 +18,13 @@ import org.gradle.api.file.FileCollection
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.SetProperty
-import org.gradle.api.tasks.*
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Optional
-import org.tukaani.xz.LZMA2Options
-import org.tukaani.xz.XZOutputStream
-import java.io.ByteArrayOutputStream
+import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.TaskAction
 import java.io.File
+import java.io.OutputStream
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.zip.CRC32
@@ -56,63 +63,58 @@ abstract class ModPackagingTask : DefaultTask() {
         val outputFile = outputFile.get().asFile
         outputFile.parentFile.mkdirs()
 
-        val bytes = readToZipBytes()
-        System.gc()
-
         val rawStream = outputFile.outputStream().buffered(16 * 1024)
         val lzma2Options = LZMA2Options(LZMA2Options.PRESET_MAX)
-        lzma2Options.dictSize = 16 * 1024 * 1024
+        lzma2Options.dictSize = 4 * 1024 * 1024
         lzma2Options.niceLen = 273
-        XZOutputStream(rawStream, lzma2Options).use { it.write(bytes) }
-        System.gc()
+        ParallelXZOutputStream(Dispatchers.Default, rawStream, lzma2Options).use {
+            readToZip(it)
+        }
     }
 
-    private fun readToZipBytes(): ByteArray {
-        val byteArrayOut = ByteArrayOutputStream(4 * 1024 * 1024)
-        ZipArchiveOutputStream(byteArrayOut).use { zipOut ->
-            runBlocking {
-                zipOut.setMethod(ZipArchiveOutputStream.STORED)
-                val channel = Channel<Pair<ZipArchiveEntry, ByteArray>>(Channel.BUFFERED)
-                val packageLists = ConcurrentHashMap<String, MutableSet<String>>()
+    private fun readToZip(output: OutputStream) {
+        runBlocking {
+            val zipOut = ZipArchiveOutputStream(output)
+            zipOut.setMethod(ZipArchiveOutputStream.STORED)
+            val channel = Channel<Pair<ZipArchiveEntry, ByteArray>>(Channel.BUFFERED)
+            val packageLists = ConcurrentHashMap<String, MutableSet<String>>()
 
-                launch(Dispatchers.IO) {
-                    for (entry in channel) {
-                        zipOut.putArchiveEntry(entry.first)
-                        zipOut.write(entry.second)
-                        zipOut.closeArchiveEntry()
-                    }
-
-                    val crc32 = CRC32()
-                    for ((platform, packages) in packageLists) {
-                        val entry = ZipArchiveEntry("$platform/package-list.txt")
-                        val bytes = packages.sorted().joinToString("\n").toByteArray(Charsets.UTF_8)
-
-                        crc32.reset()
-                        crc32.update(bytes)
-                        entry.crc = crc32.value
-                        entry.size = bytes.size.toLong()
-
-                        zipOut.putArchiveEntry(entry)
-                        zipOut.write(bytes)
-                        zipOut.closeArchiveEntry()
-                    }
+            launch(Dispatchers.IO) {
+                for (entry in channel) {
+                    zipOut.putArchiveEntry(entry.first)
+                    zipOut.write(entry.second)
+                    zipOut.closeArchiveEntry()
                 }
 
-                coroutineScope {
-                    defaultPlatform.orNull?.let {
-                        pack(platformJars.get().singleFile, it.id, packageLists, channel)
-                    } ?: run {
-                        platformJars.get().forEach { file ->
-                            val platform = ModPlatform.values().find { file.name.contains(it.id) } ?: return@forEach
-                            pack(file, platform.id, packageLists, channel)
-                        }
-                    }
-                }
+                val crc32 = CRC32()
+                for ((platform, packages) in packageLists) {
+                    val entry = ZipArchiveEntry("$platform/package-list.txt")
+                    val bytes = packages.sorted().joinToString("\n").toByteArray(Charsets.UTF_8)
 
-                channel.close()
+                    crc32.reset()
+                    crc32.update(bytes)
+                    entry.crc = crc32.value
+                    entry.size = bytes.size.toLong()
+
+                    zipOut.putArchiveEntry(entry)
+                    zipOut.write(bytes)
+                    zipOut.closeArchiveEntry()
+                }
             }
+
+            coroutineScope {
+                defaultPlatform.orNull?.let {
+                    pack(platformJars.get().singleFile, it.id, packageLists, channel)
+                } ?: run {
+                    platformJars.get().forEach { file ->
+                        val platform = ModPlatform.values().find { file.name.contains(it.id) } ?: return@forEach
+                        pack(file, platform.id, packageLists, channel)
+                    }
+                }
+            }
+
+            channel.close()
         }
-        return byteArrayOut.toByteArray()
     }
 
     private fun CoroutineScope.pack(
