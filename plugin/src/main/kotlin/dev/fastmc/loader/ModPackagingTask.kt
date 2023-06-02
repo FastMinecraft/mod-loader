@@ -40,6 +40,9 @@ abstract class ModPackagingTask : DefaultTask() {
     @get:Input
     internal abstract val forgeModClass: Property<String>
 
+    @get:Input
+    abstract val dictSize: Property<Int>
+
     @get:Optional
     @get:Input
     internal abstract val splitLibs: SetProperty<String>
@@ -56,6 +59,7 @@ abstract class ModPackagingTask : DefaultTask() {
 
     init {
         outputFile.set(modName.map { project.layout.buildDirectory.file("mod-loader/packed/${it}.zip.xz").get() })
+        dictSize.convention(4 * 1024 * 1024)
     }
 
     @TaskAction
@@ -65,7 +69,7 @@ abstract class ModPackagingTask : DefaultTask() {
 
         val rawStream = outputFile.outputStream().buffered(16 * 1024)
         val lzma2Options = LZMA2Options(LZMA2Options.PRESET_MAX)
-        lzma2Options.dictSize = 4 * 1024 * 1024
+        lzma2Options.dictSize = dictSize.get()
         lzma2Options.niceLen = 273
         ParallelXZOutputStream(Dispatchers.Default, rawStream, lzma2Options).use {
             readToZip(it)
