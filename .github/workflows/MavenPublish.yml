@@ -1,4 +1,4 @@
-name: Publish to FastMinecraft/maven-repo
+name: Publish to Luna5ama/maven-repo
 
 on:
     workflow_dispatch:
@@ -7,7 +7,7 @@ jobs:
     call-workflow:
         uses: FastMinecraft/maven-repo/.github/workflows/MavenPublishNew.yml@main
         with:
-            target-owner: FastMinecraft
+            target-owner: Luna5ama
             target-repo: maven-repo
             target-branch: repo
         secrets:
