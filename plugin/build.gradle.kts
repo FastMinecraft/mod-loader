@@ -12,9 +12,9 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
 
-    implementation("org.apache.commons:commons-compress:1.22")
+    implementation("org.apache.commons:commons-compress:1.25.0")
 
     implementation("com.google.code.gson:gson:2.10")
     implementation("org.ow2.asm:asm-commons:9.4")
